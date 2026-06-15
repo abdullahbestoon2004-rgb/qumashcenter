@@ -1,0 +1,16 @@
+export const C = {
+  bg:         "#f7f0e3",
+  card:       "#fffdf6",
+  header:     "#3d2c1e",
+  headerText: "#f5e6c8",
+  accent:     "#c87941",
+  border:     "#d4b896",
+  muted:      "#a07850",
+  text:       "#2a1a0e",
+  strip:      "#f5e9d5",
+  red:        "#c0392b",
+  green:      "#27ae60",
+  orange:     "#e67e22",
+  blue:       "#2980b9",
+  purple:     "#8e44ad",
+};
