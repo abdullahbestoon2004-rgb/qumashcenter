@@ -12,6 +12,8 @@ import FieldErr from "../ui/FieldErr";
 import Inp from "../ui/Inp";
 import Btn from "../ui/Btn";
 import CustomerHistory from "./CustomerHistory";
+import personIcon from "../../assets/images/person.png";
+import checkIcon from "../../assets/images/check.png";
 
 export default function OrderModal({ order, allOrders, profiles, onClose, onSave }) {
   const isEdit = !!order;
@@ -92,8 +94,9 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
 
         {profileMatch && (
           <div style={{ background: "#f0e8f8", border: "1px solid #c39bd3", borderRadius: 10, padding: "8px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 14, color: C.purple, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
-              👤 پرۆفایلی <strong>{profileMatch.name}</strong> دۆزرایەوە
+            <div style={{ fontSize: 14, color: C.purple, fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
+              <img src={personIcon} alt="profile" style={{ width: 16, height: 16, objectFit: "contain" }} />
+              <span>پرۆفایلی <strong>{profileMatch.name}</strong> دۆزرایەوە</span>
             </div>
             <Btn onClick={() => setForm(f => ({ ...f, name: profileMatch.name, measurements: { ...profileMatch.measurements } }))} color={C.purple} small>بارکردنی قەبارەکان</Btn>
           </div>
@@ -227,7 +230,10 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={handleSave} color={C.header} solid>پاشەکەوتکردن ✓</Btn>
+          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span>پاشەکەوتکردن</span>
+            <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />
+          </Btn>
           <Btn onClick={onClose} color={C.muted}>هەڵوەشاندن</Btn>
         </div>
       </div>

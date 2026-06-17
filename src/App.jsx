@@ -18,6 +18,11 @@ import ProfileDetail from "./components/profiles/ProfileDetail";
 import DeleteConfirm from "./components/shared/DeleteConfirm";
 import BinPanel      from "./components/shared/BinPanel";
 import Btn           from "./components/ui/Btn";
+import binIcon      from "./assets/images/bin.png";
+import magnifyIcon  from "./assets/images/magnify.png";
+import ordersIcon   from "./assets/images/orders.png";
+import personIcon   from "./assets/images/person.png";
+import scissorsIcon from "./assets/images/scissors.png";
 
 export default function App() {
   const [orders,       setOrders]       = useState(() => ls.load("qumash_orders",   SEED_ORDERS));
@@ -92,7 +97,7 @@ export default function App() {
       {/* Header */}
       <header style={{ background: C.header, padding: "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 72, position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,.25)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 28 }}>✂️</span>
+          <img src={scissorsIcon} alt="scissors" style={{ width: 28, height: 28, objectFit: "contain" }} />
           <div>
             <div style={{ color: C.headerText, fontWeight: 700, fontSize: 19, fontFamily: "Segoe UI,Tahoma,sans-serif", lineHeight: 1.2 }}>قوماش سەنتەر</div>
             <div style={{ color: C.muted, fontSize: 12 }}>سیستەمی داواکارییەکان</div>
@@ -100,7 +105,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button onClick={() => setShowBin(true)} style={{ background: "none", color: C.headerText, border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: "9px 18px", fontSize: 15, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-            🗑️ سەتل
+            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain" }} /> سەتل
             {bin.length > 0 && (
               <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 22, height: 22, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: -8, left: -8 }}>
                 {bin.length}
@@ -116,15 +121,22 @@ export default function App() {
 
       {/* Tabs */}
       <div style={{ background: C.header, display: "flex", padding: "0 30px", borderBottom: `2.5px solid ${C.accent}` }}>
-        {[["orders", "📋 داواکارییەکان"], ["profiles", "👤 کڕیارەکان"]].map(([key, label]) => (
+        {[
+          { key: "orders", icon: ordersIcon, label: "داواکارییەکان" },
+          { key: "profiles", icon: personIcon, label: "کڕیارەکان" }
+        ].map(({ key, icon, label }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             background: "none", border: "none", color: tab === key ? C.accent : C.muted,
             fontSize: 16, fontWeight: tab === key ? 700 : 400, padding: "14px 22px",
             cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif",
             borderBottom: tab === key ? `4px solid ${C.accent}` : "4px solid transparent",
             marginBottom: -2.5,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
           }}>
-            {label}
+            <img src={icon} alt={label} style={{ width: 18, height: 18, objectFit: "contain", filter: tab === key ? "none" : "grayscale(100%) opacity(0.7)" }} />
+            <span>{label}</span>
             {key === "profiles" && (
               <span style={{ marginRight: 8, background: C.muted, color: C.header, borderRadius: 20, padding: "2px 9px", fontSize: 13 }}>{profiles.length}</span>
             )}
@@ -136,7 +148,7 @@ export default function App() {
         <Dashboard orders={orders} activeFilter={filter} onFilter={setFilter} />
         <div style={{ background: "#ede3cf", borderBottom: `1.5px solid ${C.border}`, padding: "16px 30px", display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ flex: 1, position: "relative" }}>
-            <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: C.muted, pointerEvents: "none" }}>🔍</span>
+            <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, objectFit: "contain", pointerEvents: "none" }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="گەڕان بەپێی کۆد، ناو، یان ژمارەی مۆبایل..."
               style={{ width: "100%", padding: "12px 42px 12px 16px", fontSize: 16, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
@@ -149,7 +161,9 @@ export default function App() {
         <main style={{ padding: "30px 20px", maxWidth: 1600, margin: "0 auto" }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign: "center", paddingTop: 70, color: C.muted }}>
-              <div style={{ fontSize: 46, marginBottom: 10 }}>📋</div>
+              <div style={{ marginBottom: 10 }}>
+                <img src={ordersIcon} alt="no orders" style={{ width: 48, height: 48, objectFit: "contain", filter: "grayscale(100%) opacity(0.6)" }} />
+              </div>
               <div style={{ fontSize: 17, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
                 {search || filter !== "all" ? "هیچ داواکارییەک نەدۆزرایەوە" : "هیچ داواکارییەک تۆمار نەکراوە"}
               </div>

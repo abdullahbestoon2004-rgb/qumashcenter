@@ -8,6 +8,7 @@ import Lbl from "../ui/Lbl";
 import FieldErr from "../ui/FieldErr";
 import Inp from "../ui/Inp";
 import Btn from "../ui/Btn";
+import checkIcon from "../../assets/images/check.png";
 
 export default function ProfileForm({ profile, onClose, onSave }) {
   const isEdit = !!profile;
@@ -97,7 +98,10 @@ export default function ProfileForm({ profile, onClose, onSave }) {
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={handleSave} color={C.header} solid>پاشەکەوتکردن ✓</Btn>
+          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span>پاشەکەوتکردن</span>
+            <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />
+          </Btn>
           <Btn onClick={onClose} color={C.muted}>هەڵوەشاندن</Btn>
         </div>
       </div>

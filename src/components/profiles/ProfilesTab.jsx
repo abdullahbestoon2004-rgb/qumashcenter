@@ -6,6 +6,9 @@ import { remAmt } from "../../utils/payment";
 import { normPhone } from "../../utils/phone";
 import Avatar from "../ui/Avatar";
 import Btn from "../ui/Btn";
+import magnifyIcon from "../../assets/images/magnify.png";
+import personIcon from "../../assets/images/person.png";
+import noteIcon from "../../assets/images/note.png";
 
 export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProfile, onDeleteProfile, onViewProfile }) {
   const [search, setSearch] = useState("");
@@ -25,7 +28,7 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
       {/* Search + add */}
       <div style={{ display: "flex", gap: 14, marginBottom: 20, alignItems: "center" }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: C.muted, pointerEvents: "none" }}>🔍</span>
+          <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, objectFit: "contain", pointerEvents: "none" }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="گەڕان بەپێی ناو یان ژمارە..."
             style={{ width: "100%", padding: "12px 42px 12px 16px", fontSize: 16, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
@@ -39,7 +42,9 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
 
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", paddingTop: 60, color: C.muted }}>
-          <div style={{ fontSize: 46, marginBottom: 10 }}>👤</div>
+          <div style={{ marginBottom: 10 }}>
+            <img src={personIcon} alt="no profiles" style={{ width: 48, height: 48, objectFit: "contain", filter: "grayscale(100%) opacity(0.6)" }} />
+          </div>
           <div style={{ fontSize: 17, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>هیچ پرۆفایلێک نەدۆزرایەوە</div>
         </div>
       ) : (
@@ -86,8 +91,9 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
                 </div>
 
                 {p.notes && (
-                  <div style={{ marginTop: 10, fontSize: 13, color: "#8a6a4a", fontStyle: "italic", fontFamily: "Segoe UI,Tahoma,sans-serif", borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
-                    📝 {p.notes.slice(0, 60)}{p.notes.length > 60 ? "..." : ""}
+                  <div style={{ marginTop: 10, fontSize: 13, color: "#8a6a4a", fontStyle: "italic", fontFamily: "Segoe UI,Tahoma,sans-serif", borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                    <img src={noteIcon} alt="notes" style={{ width: 14, height: 14, objectFit: "contain" }} />
+                    <span>{p.notes.slice(0, 60)}{p.notes.length > 60 ? "..." : ""}</span>
                   </div>
                 )}
               </div>

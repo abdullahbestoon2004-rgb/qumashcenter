@@ -2,6 +2,8 @@ import { useState } from "react";
 import { C } from "../../constants/theme";
 import { fmt } from "../../utils/format";
 import Btn from "../ui/Btn";
+import binIcon from "../../assets/images/bin.png";
+import checkIcon from "../../assets/images/check.png";
 
 export default function BinPanel({ bin, onRestore, onPermanentDelete, onClearAll, onClose }) {
   const [confirmClear, setConfirmClear] = useState(false);
@@ -16,7 +18,7 @@ export default function BinPanel({ bin, onRestore, onPermanentDelete, onClearAll
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 12px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>🗑️</span>
+            <img src={binIcon} alt="bin" style={{ width: 20, height: 20, objectFit: "contain" }} />
             <div>
               <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>سەتلی داواکارییە سڕاوەکان</div>
               <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{bin.length} داواکاری</div>
@@ -43,7 +45,9 @@ export default function BinPanel({ bin, onRestore, onPermanentDelete, onClearAll
         <div style={{ overflowY: "auto", flex: 1, padding: "10px 16px 16px" }}>
           {bin.length === 0 ? (
             <div style={{ textAlign: "center", paddingTop: 50, color: C.muted }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
+              <div style={{ marginBottom: 10 }}>
+                <img src={checkIcon} alt="empty bin" style={{ width: 40, height: 40, objectFit: "contain" }} />
+              </div>
               <div style={{ fontSize: 15, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>سەتل بەتاڵە</div>
             </div>
           ) : bin.map(o => (

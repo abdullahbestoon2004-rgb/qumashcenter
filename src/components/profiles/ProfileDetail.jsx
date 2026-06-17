@@ -7,6 +7,7 @@ import { remAmt, payStatus } from "../../utils/payment";
 import { normPhone } from "../../utils/phone";
 import Avatar from "../ui/Avatar";
 import Btn from "../ui/Btn";
+import noteIcon from "../../assets/images/note.png";
 
 export default function ProfileDetail({ profile, orders, onClose, onEdit, onDelete, onNewOrder }) {
   const profileOrders = useMemo(() =>
@@ -77,8 +78,9 @@ export default function ProfileDetail({ profile, orders, onClose, onEdit, onDele
           </div>
 
           {profile.notes && (
-            <div style={{ background: "#fdf3e3", border: "1px solid #e8d5b0", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 15, color: "#6a4a2a", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
-              📝 {profile.notes}
+            <div style={{ background: "#fdf3e3", border: "1px solid #e8d5b0", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 15, color: "#6a4a2a", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
+              <img src={noteIcon} alt="notes" style={{ width: 16, height: 16, objectFit: "contain" }} />
+              <span>{profile.notes}</span>
             </div>
           )}
 

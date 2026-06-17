@@ -6,6 +6,9 @@ import { fmt } from "../../utils/format";
 import { remAmt, payStatus } from "../../utils/payment";
 import { normPhone } from "../../utils/phone";
 import Btn from "../ui/Btn";
+import phoneIcon from "../../assets/images/phone.png";
+import whatsappIcon from "../../assets/images/whatsapp.png";
+import noteIcon from "../../assets/images/note.png";
 
 export default function OrderCard({ order, onEdit, onDelete }) {
   const days = daysLeft(order.deliveryDate);
@@ -27,8 +30,12 @@ export default function OrderCard({ order, onEdit, onDelete }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, justifyContent: "flex-end" }}>
         <span style={{ fontSize: 14, color: C.muted, direction: "ltr" }}>{order.phone}</span>
-        <a href={`tel:${order.phone}`} style={{ textDecoration: "none", fontSize: 16 }}>📞</a>
-        <a href={`https://wa.me/${normPhone(order.phone)}`} target="_blank" rel="noreferrer" style={{ textDecoration: "none", fontSize: 16 }}>💬</a>
+        <a href={`tel:${order.phone}`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={phoneIcon} alt="phone" style={{ width: 18, height: 18, objectFit: "contain" }} />
+        </a>
+        <a href={`https://wa.me/${normPhone(order.phone)}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+          <img src={whatsappIcon} alt="whatsapp" style={{ width: 18, height: 18, objectFit: "contain" }} />
+        </a>
       </div>
 
       <div style={{ borderTop: `1px dashed ${C.border}`, margin: "6px 0" }} />
@@ -74,8 +81,9 @@ export default function OrderCard({ order, onEdit, onDelete }) {
       </div>
 
       {order.notes && (
-        <div style={{ fontSize: 13, color: "#6a4a2a", background: "#fdf3e3", borderRadius: 8, padding: "6px 10px", marginBottom: 10 }}>
-          📝 {order.notes}
+        <div style={{ fontSize: 13, color: "#6a4a2a", background: "#fdf3e3", borderRadius: 8, padding: "6px 10px", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+          <img src={noteIcon} alt="notes" style={{ width: 14, height: 14, objectFit: "contain" }} />
+          <span>{order.notes}</span>
         </div>
       )}
 
