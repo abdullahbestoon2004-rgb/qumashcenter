@@ -40,6 +40,10 @@ export default function App() {
   useEffect(() => { ls.save("qumash_profiles", profiles); }, [profiles]);
   useEffect(() => { ls.save("qumash_bin",      bin);      }, [bin]);
 
+  function handleAddNewProfile(name) {
+    setProfiles(prev => [{ id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() }, ...prev]);
+  }
+
   // Auto-create/update profile when an order is saved
   function handleSaveOrder(order) {
     setOrders(prev => {
@@ -48,10 +52,12 @@ export default function App() {
     });
     setProfiles(prev => {
       const ph = normPhone(order.phone);
-      const existing = prev.find(p => normPhone(p.phone) === ph);
+      // Match by phone first, then fall back to a stub profile (no phone) with same name
+      const existing = prev.find(p => normPhone(p.phone) === ph)
+        || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === order.name.trim().toLowerCase());
       if (existing) {
-        return prev.map(p => normPhone(p.phone) === ph
-          ? { ...p, name: order.name, measurements: { ...order.measurements } }
+        return prev.map(p => p.id === existing.id
+          ? { ...p, name: order.name, phone: ph, measurements: { ...order.measurements } }
           : p
         );
       }
@@ -105,7 +111,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button onClick={() => setShowBin(true)} style={{ background: "none", color: C.headerText, border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: "9px 18px", fontSize: 15, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain" }} /> سەتل
+            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain" }} /> سڕاوەکان
             {bin.length > 0 && (
               <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 22, height: 22, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: -8, left: -8 }}>
                 {bin.length}
@@ -216,6 +222,7 @@ export default function App() {
           allOrders={orders} profiles={profiles}
           onClose={() => setModal(null)}
           onSave={handleSaveOrder}
+          onAddNewProfile={handleAddNewProfile}
         />
       )}
 

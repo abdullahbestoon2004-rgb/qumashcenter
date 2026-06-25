@@ -15,16 +15,28 @@ import CustomerHistory from "./CustomerHistory";
 import personIcon from "../../assets/images/person.png";
 import checkIcon from "../../assets/images/check.png";
 
-export default function OrderModal({ order, allOrders, profiles, onClose, onSave }) {
+export default function OrderModal({ order, allOrders, profiles, onClose, onSave, onAddNewProfile }) {
   const isEdit = !!order;
   const [form, setForm] = useState(() =>
     order ? { ...order, measurements: { ...order.measurements } }
           : { ...EMPTY_FORM, measurements: { ...EMPTY_M } }
   );
   const [errors, setErrors] = useState({});
-  const mRefs    = useRef([]);
-  const firstRef = useRef(null);
+  const [showNameDrop, setShowNameDrop] = useState(false);
+  const [newClientAdded, setNewClientAdded] = useState(false);
+  const mRefs       = useRef([]);
+  const firstRef    = useRef(null);
+  const nameWrapRef = useRef(null);
   useEffect(() => { firstRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (nameWrapRef.current && !nameWrapRef.current.contains(e.target))
+        setShowNameDrop(false);
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
 
   const sf = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
   const sm = useCallback((k, v) => setForm(f => ({ ...f, measurements: { ...f.measurements, [k]: v } })), []);
@@ -41,6 +53,28 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
     profiles.find(p => normPhone(p.phone) === normPhone(form.phone)),
     [form.phone, profiles]
   );
+
+  const nameMatches = useMemo(() => {
+    const q = form.name.trim().toLowerCase();
+    if (!q) return [];
+    return profiles.filter(p => p.name.toLowerCase().includes(q));
+  }, [form.name, profiles]);
+
+  function selectProfile(p) {
+    setForm(f => ({ ...f, name: p.name, phone: p.phone, measurements: { ...p.measurements } }));
+    setShowNameDrop(false);
+    setNewClientAdded(false);
+    ce("name");
+    ce("phone");
+  }
+
+  function addAsNewClient() {
+    const name = form.name.trim();
+    if (!name) return;
+    onAddNewProfile(name);
+    setShowNameDrop(false);
+    setNewClientAdded(true);
+  }
 
   const remaining = remAmt(form.totalPrice, form.paidAmount);
 
@@ -98,7 +132,7 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
               <img src={personIcon} alt="profile" style={{ width: 16, height: 16, objectFit: "contain" }} />
               <span>پرۆفایلی <strong>{profileMatch.name}</strong> دۆزرایەوە</span>
             </div>
-            <Btn onClick={() => setForm(f => ({ ...f, name: profileMatch.name, measurements: { ...profileMatch.measurements } }))} color={C.purple} small>بارکردنی قەبارەکان</Btn>
+            <Btn onClick={() => setForm(f => ({ ...f, name: profileMatch.name, measurements: { ...profileMatch.measurements } }))} color={C.purple} small>بارکردنی قیاسەکان</Btn>
           </div>
         )}
 
@@ -110,11 +144,46 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
               onChange={e => { sf("code", e.target.value); ce("code"); }} />
             <FieldErr msg={errors.code} />
           </div>
-          <div style={{ flex: 1 }} id="mf-name">
+          <div style={{ flex: 1, position: "relative" }} id="mf-name" ref={nameWrapRef}>
             <Lbl>ناو</Lbl>
-            <Inp value={form.name} hasErr={!!errors.name} placeholder="ناوی کڕیار"
-              onChange={e => { sf("name", e.target.value); ce("name"); }} />
+            <Inp value={form.name} hasErr={!!errors.name} placeholder="ناوی کڕیار" autoComplete="off"
+              onChange={e => { sf("name", e.target.value); ce("name"); setShowNameDrop(true); setNewClientAdded(false); }}
+              onFocus={() => { if (form.name.trim()) setShowNameDrop(true); }}
+            />
             <FieldErr msg={errors.name} />
+
+            {/* Autocomplete dropdown */}
+            {showNameDrop && form.name.trim() && (
+              <div style={{ position: "absolute", top: "calc(100% + 3px)", left: 0, right: 0, zIndex: 200, background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.13)", overflow: "hidden", direction: "rtl" }}>
+                {nameMatches.map(p => (
+                  <div key={p.id} onMouseDown={() => selectProfile(p)}
+                    style={{ padding: "11px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${C.border}`, fontSize: 15, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", background: "transparent", transition: "background .1s" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = C.strip)}
+                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <img src={personIcon} alt="" style={{ width: 17, height: 17, objectFit: "contain", opacity: 0.75 }} />
+                    <span style={{ fontWeight: 600, flex: 1 }}>{p.name}</span>
+                    {p.phone && <span style={{ color: C.muted, fontSize: 13 }}>{p.phone}</span>}
+                  </div>
+                ))}
+                <div onMouseDown={addAsNewClient}
+                  style={{ padding: "11px 14px", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontSize: 15, color: C.accent, fontFamily: "Segoe UI,Tahoma,sans-serif", fontWeight: 600, background: "transparent", borderTop: nameMatches.length ? `1px solid ${C.border}` : "none", transition: "background .1s" }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#fff5eb")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{ fontSize: 19, lineHeight: 1 }}>+</span>
+                  <span>زیادکردنی <strong>"{form.name.trim()}"</strong> وەک کڕیاری نوێ</span>
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation badge after adding */}
+            {newClientAdded && (
+              <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 5, color: C.green, fontSize: 13, fontFamily: "Segoe UI,Tahoma,sans-serif", fontWeight: 600 }}>
+                <span>✓</span>
+                <span>زیادکرا بۆ لیستی کڕیارەکان</span>
+              </div>
+            )}
           </div>
         </div>
 
