@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { C } from "./constants/theme";
 import { EMPTY_FORM } from "./constants/forms";
 import { EMPTY_M } from "./constants/measurements";
-import { SEED_ORDERS, SEED_PROFILES } from "./data/seed";
 import { uuid } from "./utils/uuid";
 import { todayISO } from "./utils/date";
 import { normPhone } from "./utils/phone";
@@ -12,6 +11,7 @@ import { ls } from "./utils/storage";
 import Dashboard     from "./components/orders/Dashboard";
 import OrderCard     from "./components/orders/OrderCard";
 import OrderModal    from "./components/orders/OrderModal";
+import PaymentModal  from "./components/orders/PaymentModal";
 import ProfilesTab   from "./components/profiles/ProfilesTab";
 import ProfileForm   from "./components/profiles/ProfileForm";
 import ProfileDetail from "./components/profiles/ProfileDetail";
@@ -24,21 +24,24 @@ import ordersIcon   from "./assets/images/orders.png";
 import personIcon   from "./assets/images/person.png";
 import scissorsIcon from "./assets/images/scissors.png";
 
-export default function App() {
-  const [orders,       setOrders]       = useState(() => ls.load("qumash_orders",   SEED_ORDERS));
-  const [profiles,     setProfiles]     = useState(() => ls.load("qumash_profiles", SEED_PROFILES));
-  const [bin,          setBin]          = useState(() => ls.load("qumash_bin",       []));
+export default function App({ branchId, branchName, onLogout }) {
+  const K = k => `qumash_${branchId}_${k}`;
+
+  const [orders,       setOrders]       = useState(() => ls.load(K("orders"),   []));
+  const [profiles,     setProfiles]     = useState(() => ls.load(K("profiles"), []));
+  const [bin,          setBin]          = useState(() => ls.load(K("bin"),      []));
   const [tab,          setTab]          = useState("orders");   // "orders" | "profiles"
   const [search,       setSearch]       = useState("");
   const [filter,       setFilter]       = useState("all");
   const [modal,        setModal]        = useState(null);       // null | "new" | order
+  const [payModal,     setPayModal]     = useState(null);       // null | order
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [showBin,      setShowBin]      = useState(false);
   const [profileModal, setProfileModal] = useState(null);       // null | "new" | profile (edit) | { view: profile }
 
-  useEffect(() => { ls.save("qumash_orders",   orders);   }, [orders]);
-  useEffect(() => { ls.save("qumash_profiles", profiles); }, [profiles]);
-  useEffect(() => { ls.save("qumash_bin",      bin);      }, [bin]);
+  useEffect(() => { ls.save(K("orders"),   orders);   }, [orders]);
+  useEffect(() => { ls.save(K("profiles"), profiles); }, [profiles]);
+  useEffect(() => { ls.save(K("bin"),      bin);      }, [bin]);
 
   function handleAddNewProfile(name) {
     setProfiles(prev => [{ id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() }, ...prev]);
@@ -79,6 +82,11 @@ export default function App() {
     setProfileModal(null);
   }
 
+  function handleAddPayment(updatedOrder) {
+    setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    setPayModal(null);
+  }
+
   function handleDeleteOrder(id) {
     const target = orders.find(o => o.id === id);
     if (!target) return;
@@ -106,7 +114,7 @@ export default function App() {
           <img src={scissorsIcon} alt="scissors" style={{ width: 28, height: 28, objectFit: "contain" }} />
           <div>
             <div style={{ color: C.headerText, fontWeight: 700, fontSize: 19, fontFamily: "Segoe UI,Tahoma,sans-serif", lineHeight: 1.2 }}>قوماش سەنتەر</div>
-            <div style={{ color: C.muted, fontSize: 12 }}>سیستەمی داواکارییەکان</div>
+            <div style={{ color: C.accent, fontSize: 13, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>🏪 {branchName}</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -122,6 +130,7 @@ export default function App() {
             ? <Btn onClick={() => setModal("new")} color={C.accent} solid>+ داواکاری نوێ</Btn>
             : <Btn onClick={() => setProfileModal("new")} color={C.accent} solid>+ پرۆفایلی نوێ</Btn>
           }
+          <button onClick={onLogout} title="چوونەدەرەوە" style={{ background: "none", border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: "9px 14px", fontSize: 18, cursor: "pointer", color: C.muted, lineHeight: 1 }}>⏻</button>
         </div>
       </header>
 
@@ -176,7 +185,7 @@ export default function App() {
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(370px,1fr))", gap: 20 }}>
-              {filtered.map(o => <OrderCard key={o.id} order={o} onEdit={ord => setModal(ord)} onDelete={id => setConfirmDel(id)} />)}
+              {filtered.map(o => <OrderCard key={o.id} order={o} onEdit={ord => setModal(ord)} onDelete={id => setConfirmDel(id)} onAddPayment={ord => setPayModal(ord)} />)}
             </div>
           )}
         </main>
@@ -223,6 +232,14 @@ export default function App() {
           onClose={() => setModal(null)}
           onSave={handleSaveOrder}
           onAddNewProfile={handleAddNewProfile}
+        />
+      )}
+
+      {payModal && (
+        <PaymentModal
+          order={payModal}
+          onClose={() => setPayModal(null)}
+          onSave={handleAddPayment}
         />
       )}
 

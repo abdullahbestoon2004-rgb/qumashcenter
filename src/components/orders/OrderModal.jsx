@@ -15,11 +15,16 @@ import CustomerHistory from "./CustomerHistory";
 import personIcon from "../../assets/images/person.png";
 import checkIcon from "../../assets/images/check.png";
 
+function nextOrderCode(orders) {
+  const nums = orders.map(o => parseInt(o.code, 10)).filter(n => !isNaN(n));
+  return nums.length ? String(Math.max(...nums) + 1) : "1";
+}
+
 export default function OrderModal({ order, allOrders, profiles, onClose, onSave, onAddNewProfile }) {
   const isEdit = !!order;
   const [form, setForm] = useState(() =>
     order ? { ...order, measurements: { ...order.measurements } }
-          : { ...EMPTY_FORM, measurements: { ...EMPTY_M } }
+          : { ...EMPTY_FORM, measurements: { ...EMPTY_M }, code: nextOrderCode(allOrders) }
   );
   const [errors, setErrors] = useState({});
   const [showNameDrop, setShowNameDrop] = useState(false);
@@ -209,16 +214,29 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
 
         {/* Payment */}
         <div style={{ background: C.strip, borderRadius: 10, padding: "12px 14px", marginBottom: 12, border: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 14, color: C.muted, fontWeight: 600, marginBottom: 12, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>💰 پارەدان (د.ع)</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 14, color: C.muted, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>💰 پارەدان</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {["IQD", "USD"].map(c => (
+                <button key={c} onClick={() => sf("currency", c)} style={{
+                  padding: "4px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  borderRadius: 6, border: `1.5px solid ${form.currency === c ? C.accent : C.border}`,
+                  background: form.currency === c ? C.accent : C.card,
+                  color: form.currency === c ? "#fff" : C.muted,
+                  fontFamily: "Segoe UI,Tahoma,sans-serif", transition: "all .12s",
+                }}>{c}</button>
+              ))}
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 100 }} id="mf-totalPrice">
-              <Lbl>نرخی گشتی</Lbl>
+              <Lbl>نرخی گشتی ({form.currency})</Lbl>
               <Inp value={form.totalPrice} hasErr={!!errors.totalPrice} placeholder="35000"
                 onChange={e => { sf("totalPrice", e.target.value); ce("totalPrice"); }} />
               <FieldErr msg={errors.totalPrice} />
             </div>
             <div style={{ flex: 1, minWidth: 100 }} id="mf-paidAmount">
-              <Lbl>دراوە</Lbl>
+              <Lbl>دراوە ({form.currency})</Lbl>
               <Inp value={form.paidAmount} hasErr={!!errors.paidAmount} placeholder="0"
                 onChange={e => { sf("paidAmount", e.target.value); ce("paidAmount"); }} />
               <FieldErr msg={errors.paidAmount} />
@@ -226,10 +244,24 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
             <div style={{ flex: "0 0 auto" }}>
               <Lbl>ماوەکە</Lbl>
               <div style={{ padding: "10px 14px", fontSize: 17, fontWeight: 700, color: remaining > 0 ? C.red : C.green, background: C.card, borderRadius: 8, border: `1.5px solid ${C.border}`, whiteSpace: "nowrap", fontFamily: "'Courier New',monospace" }}>
-                {fmt(remaining)} د.ع
+                {fmt(remaining)} {form.currency}
               </div>
             </div>
           </div>
+
+          {/* Payment log */}
+          {(form.paymentLog || []).length > 0 && (
+            <div style={{ marginTop: 12, borderTop: `1px dashed ${C.border}`, paddingTop: 10 }}>
+              <div style={{ fontSize: 13, color: C.muted, fontWeight: 600, marginBottom: 6, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>مێژووی پارەدان</div>
+              {form.paymentLog.map(p => (
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.text, padding: "4px 0", borderBottom: `1px solid ${C.border}`, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                  <span style={{ color: C.muted }}>{p.date}</span>
+                  {p.note && <span style={{ flex: 1, paddingRight: 8, color: C.muted }}>{p.note}</span>}
+                  <strong style={{ color: C.green }}>{fmt(p.amount)} {form.currency}</strong>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>

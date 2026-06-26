@@ -4,18 +4,34 @@ import { STATUS_MAP, STATUS } from "../../constants/status";
 import { daysLeft, deadlineColor } from "../../utils/date";
 import { fmt } from "../../utils/format";
 import { remAmt, payStatus } from "../../utils/payment";
-import { normPhone } from "../../utils/phone";
+import { normPhone, toWAPhone } from "../../utils/phone";
 import Btn from "../ui/Btn";
 import phoneIcon from "../../assets/images/phone.png";
 import whatsappIcon from "../../assets/images/whatsapp.png";
 import noteIcon from "../../assets/images/note.png";
 
-export default function OrderCard({ order, onEdit, onDelete }) {
+function buildNotifyUrl(order) {
+  const cur = order.currency === "USD" ? "$" : "د.ع";
+  const r   = remAmt(order.totalPrice, order.paidAmount);
+  const lines = [
+    `سڵاو ${order.name}، `,
+    `داواکارییەکەت ئامادەیە!`,
+    ` کۆد: ${order.code}`,
+    ` نرخی گشتی: ${fmt(order.totalPrice)} ${cur}`,
+    ` پارەی دراو : ${fmt(order.paidAmount)} ${cur}`,
+    r > 0 ? ` ماوە: ${fmt(r)} ${cur}` : ``,
+    ``,
+  ].filter(l => l !== undefined);
+  return `https://wa.me/${toWAPhone(order.phone)}?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
+export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
   const days = daysLeft(order.deliveryDate);
   const dc   = deadlineColor(days);
   const ps   = payStatus(order.totalPrice, order.paidAmount);
   const r    = remAmt(order.totalPrice, order.paidAmount);
   const s    = STATUS_MAP[order.status] || STATUS[0];
+  const cur  = order.currency === "USD" ? "$" : "د.ع";
 
   return (
     <div
@@ -33,7 +49,7 @@ export default function OrderCard({ order, onEdit, onDelete }) {
         <a href={`tel:${order.phone}`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
           <img src={phoneIcon} alt="phone" style={{ width: 18, height: 18, objectFit: "contain" }} />
         </a>
-        <a href={`https://wa.me/${normPhone(order.phone)}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+        <a href={`https://wa.me/${toWAPhone(order.phone)}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
           <img src={whatsappIcon} alt="whatsapp" style={{ width: 18, height: 18, objectFit: "contain" }} />
         </a>
       </div>
@@ -50,6 +66,15 @@ export default function OrderCard({ order, onEdit, onDelete }) {
         )}
       </div>
 
+      {order.status === "ready" && order.phone && (
+        <a href={buildNotifyUrl(order)} target="_blank" rel="noreferrer"
+          style={{ display: "flex", alignItems: "center", gap: 8, background: "#e8f8ef", border: "1.5px solid #82e0aa", borderRadius: 9, padding: "8px 14px", marginBottom: 10, textDecoration: "none", cursor: "pointer" }}>
+          <img src={whatsappIcon} alt="whatsapp" style={{ width: 18, height: 18, objectFit: "contain" }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#1a7a40", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>ئاگادارکردنەوەی کڕیار</span>
+          <span style={{ fontSize: 12, color: "#27ae60", marginRight: "auto" }}>واتساپ →</span>
+        </a>
+      )}
+
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         {[["شێواز", order.style], ["قوماش", order.fabric]].map(([l, v]) => (
           <div key={l}>
@@ -59,14 +84,14 @@ export default function OrderCard({ order, onEdit, onDelete }) {
         ))}
         <div>
           <div style={{ fontSize: 12, color: C.muted }}>گشتی</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: C.accent }}>{fmt(order.totalPrice)} <span style={{ fontSize: 12 }}>د.ع</span></div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: C.accent }}>{fmt(order.totalPrice)} <span style={{ fontSize: 12 }}>{cur}</span></div>
         </div>
       </div>
 
       <div style={{ background: ps.bg, borderRadius: 8, padding: "7px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
         <div style={{ display: "flex", gap: 12 }}>
-          <span style={{ fontSize: 13, color: C.muted }}>دراوە: <strong style={{ color: C.green }}>{fmt(order.paidAmount)}</strong></span>
-          <span style={{ fontSize: 13, color: C.muted }}>ماوەکە: <strong style={{ color: r > 0 ? C.red : C.green }}>{fmt(r)}</strong></span>
+          <span style={{ fontSize: 13, color: C.muted }}>دراوە: <strong style={{ color: C.green }}>{fmt(order.paidAmount)} {cur}</strong></span>
+          <span style={{ fontSize: 13, color: C.muted }}>ماوەکە: <strong style={{ color: r > 0 ? C.red : C.green }}>{fmt(r)} {cur}</strong></span>
         </div>
         <span style={{ fontSize: 13, fontWeight: 700, color: ps.color }}>{ps.label}</span>
       </div>
@@ -88,8 +113,9 @@ export default function OrderCard({ order, onEdit, onDelete }) {
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, flexWrap: "wrap", gap: 6 }}>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <Btn onClick={() => onEdit(order)} color={C.header} small>دەستکاری</Btn>
+          {r > 0 && <Btn onClick={() => onAddPayment(order)} color={C.green} small>+ پارەدان</Btn>}
           <Btn onClick={() => onDelete(order.id)} color={C.red} small>سڕینەوە</Btn>
         </div>
         <div style={{ background: s.bg, color: s.color, border: `1.5px solid ${s.border}`, borderRadius: 20, padding: "5px 16px", fontSize: 13, fontWeight: 700, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>

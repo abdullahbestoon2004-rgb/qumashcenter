@@ -7,6 +7,8 @@ export const EMPTY_FORM = {
   phone:        "",
   totalPrice:   "",
   paidAmount:   "0",
+  currency:     "IQD",
+  paymentLog:   [],
   style:        "",
   fabric:       "",
   status:       "pending",
