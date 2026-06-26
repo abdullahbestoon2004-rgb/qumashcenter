@@ -4,6 +4,7 @@ import { MEASUREMENTS, EMPTY_M } from "../../constants/measurements";
 import { uuid } from "../../utils/uuid";
 import { todayISO } from "../../utils/date";
 import { normPhone, validPhone } from "../../utils/phone";
+import { useIsMobile } from "../../utils/responsive";
 import Lbl from "../ui/Lbl";
 import FieldErr from "../ui/FieldErr";
 import Inp from "../ui/Inp";
@@ -11,6 +12,7 @@ import Btn from "../ui/Btn";
 import checkIcon from "../../assets/images/check.png";
 
 export default function ProfileForm({ profile, onClose, onSave }) {
+  const isMobile = useIsMobile();
   const isEdit = !!profile;
   const [form, setForm] = useState(profile
     ? { ...profile, measurements: { ...profile.measurements } }
@@ -45,7 +47,7 @@ export default function ProfileForm({ profile, onClose, onSave }) {
       style={{ position: "fixed", inset: 0, background: "rgba(30,18,8,.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 620, border: `2px solid ${C.border}`, padding: "28px 28px 24px", direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "92vh", overflowY: "auto" }}>
+      <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 620, border: `2px solid ${C.border}`, padding: isMobile ? "16px 14px 14px" : "28px 28px 24px", direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "92vh", overflowY: "auto" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, color: C.text, fontSize: 21, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{isEdit ? "دەستکاری پرۆفایل" : "پرۆفایلی نوێ"}</h2>

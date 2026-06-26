@@ -7,6 +7,7 @@ import { uuid } from "../../utils/uuid";
 import { toNum, fmt } from "../../utils/format";
 import { remAmt } from "../../utils/payment";
 import { normPhone, validPhone } from "../../utils/phone";
+import { useIsMobile } from "../../utils/responsive";
 import Lbl from "../ui/Lbl";
 import FieldErr from "../ui/FieldErr";
 import Inp from "../ui/Inp";
@@ -21,6 +22,7 @@ function nextOrderCode(orders) {
 }
 
 export default function OrderModal({ order, allOrders, profiles, onClose, onSave, onAddNewProfile }) {
+  const isMobile = useIsMobile();
   const isEdit = !!order;
   const [form, setForm] = useState(() =>
     order ? { ...order, measurements: { ...order.measurements } }
@@ -122,7 +124,7 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
       style={{ position: "fixed", inset: 0, background: "rgba(30,18,8,.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 680, border: `2px solid ${C.border}`, padding: "28px 28px 24px", direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "92vh", overflowY: "auto" }}>
+      <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 680, border: `2px solid ${C.border}`, padding: isMobile ? "16px 14px 14px" : "28px 28px 24px", direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "92vh", overflowY: "auto" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <h2 style={{ margin: 0, color: C.text, fontSize: 21, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{isEdit ? "دەستکاری داواکاری" : "داواکاری نوێ"}</h2>
@@ -303,30 +305,50 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
         </div>
 
         {/* Measurements */}
-        <div style={{ background: C.strip, borderRadius: 12, padding: "16px 18px 12px", border: `1px solid ${C.border}`, marginBottom: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ background: C.strip, borderRadius: 12, padding: isMobile ? "12px 12px 10px" : "16px 18px 12px", border: `1px solid ${C.border}`, marginBottom: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ fontSize: 14, color: C.muted, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>📐 قەبارەکان (سم)</div>
             {prevOrder && (
               <Btn onClick={() => setForm(f => ({ ...f, measurements: { ...prevOrder.measurements } }))} color={C.purple} small>↩ قەبارەی پێشوو</Btn>
             )}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {MEASUREMENTS.map(({ key, label }, idx) => (
-              <div key={key} id={"mf-" + key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <label style={{ fontSize: 16, color: errors[key] ? C.red : C.text, fontWeight: 600, whiteSpace: "nowrap", fontFamily: "Segoe UI,Tahoma,sans-serif", flex: "0 0 96px", textAlign: "right" }}>{label}</label>
-                <input
-                  ref={el => { mRefs.current[idx] = el; }}
-                  type="number"
-                  value={form.measurements[key]}
-                  onChange={e => { sm(key, e.target.value); ce(key); }}
-                  onKeyDown={e => handleMKD(e, idx)}
-                  style={{ flex: 1, minWidth: 0, padding: "11px 14px", fontSize: 20, border: `1.5px solid ${errors[key] ? C.red : C.border}`, borderRadius: 8, background: errors[key] ? "#fff5f5" : C.card, color: C.text, textAlign: "center", fontWeight: 700, outline: "none", fontFamily: "'Courier New',monospace", boxSizing: "border-box" }}
-                  onFocus={e => (e.target.style.borderColor = errors[key] ? C.red : C.accent)}
-                  onBlur={e  => (e.target.style.borderColor = errors[key] ? C.red : C.border)}
-                />
-              </div>
-            ))}
-          </div>
+          {isMobile ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {MEASUREMENTS.map(({ key, label }, idx) => (
+                <div key={key} id={"mf-" + key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 13, color: errors[key] ? C.red : C.muted, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif", textAlign: "center" }}>{label}</label>
+                  <input
+                    ref={el => { mRefs.current[idx] = el; }}
+                    type="number"
+                    value={form.measurements[key]}
+                    onChange={e => { sm(key, e.target.value); ce(key); }}
+                    onKeyDown={e => handleMKD(e, idx)}
+                    style={{ width: "100%", padding: "10px 6px", fontSize: 18, border: `1.5px solid ${errors[key] ? C.red : C.border}`, borderRadius: 8, background: errors[key] ? "#fff5f5" : C.card, color: C.text, textAlign: "center", fontWeight: 700, outline: "none", fontFamily: "'Courier New',monospace", boxSizing: "border-box" }}
+                    onFocus={e => (e.target.style.borderColor = errors[key] ? C.red : C.accent)}
+                    onBlur={e  => (e.target.style.borderColor = errors[key] ? C.red : C.border)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {MEASUREMENTS.map(({ key, label }, idx) => (
+                <div key={key} id={"mf-" + key} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <label style={{ fontSize: 16, color: errors[key] ? C.red : C.text, fontWeight: 600, whiteSpace: "nowrap", fontFamily: "Segoe UI,Tahoma,sans-serif", flex: "0 0 96px", textAlign: "right" }}>{label}</label>
+                  <input
+                    ref={el => { mRefs.current[idx] = el; }}
+                    type="number"
+                    value={form.measurements[key]}
+                    onChange={e => { sm(key, e.target.value); ce(key); }}
+                    onKeyDown={e => handleMKD(e, idx)}
+                    style={{ flex: 1, minWidth: 0, padding: "11px 14px", fontSize: 20, border: `1.5px solid ${errors[key] ? C.red : C.border}`, borderRadius: 8, background: errors[key] ? "#fff5f5" : C.card, color: C.text, textAlign: "center", fontWeight: 700, outline: "none", fontFamily: "'Courier New',monospace", boxSizing: "border-box" }}
+                    onFocus={e => (e.target.style.borderColor = errors[key] ? C.red : C.accent)}
+                    onBlur={e  => (e.target.style.borderColor = errors[key] ? C.red : C.border)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
           <p style={{ fontSize: 12, color: C.muted, marginTop: 10, marginBottom: 0, textAlign: "center" }}>Enter بپەرە بۆ قەبارەی دواتر</p>
         </div>
 

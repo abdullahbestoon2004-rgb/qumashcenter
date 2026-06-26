@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useIsMobile } from "./utils/responsive";
 import { C } from "./constants/theme";
 import { EMPTY_FORM } from "./constants/forms";
 import { EMPTY_M } from "./constants/measurements";
@@ -25,6 +26,7 @@ import personIcon   from "./assets/images/person.png";
 import scissorsIcon from "./assets/images/scissors.png";
 
 export default function App({ branchId, branchName, onLogout }) {
+  const isMobile = useIsMobile();
   const K = k => `qumash_${branchId}_${k}`;
 
   const [orders,       setOrders]       = useState(() => ls.load(K("orders"),   []));
@@ -109,51 +111,50 @@ export default function App({ branchId, branchName, onLogout }) {
     <div style={{ minHeight: "100vh", background: C.bg, direction: "rtl" }}>
 
       {/* Header */}
-      <header style={{ background: C.header, padding: "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 72, position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src={scissorsIcon} alt="scissors" style={{ width: 28, height: 28, objectFit: "contain" }} />
-          <div>
-            <div style={{ color: C.headerText, fontWeight: 700, fontSize: 19, fontFamily: "Segoe UI,Tahoma,sans-serif", lineHeight: 1.2 }}>قوماش سەنتەر</div>
-            <div style={{ color: C.accent, fontSize: 13, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>🏪 {branchName}</div>
+      <header style={{ background: C.header, padding: isMobile ? "0 12px" : "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: isMobile ? 60 : 72, position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,.25)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <img src={scissorsIcon} alt="scissors" style={{ width: isMobile ? 22 : 28, height: isMobile ? 22 : 28, objectFit: "contain", flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: C.headerText, fontWeight: 700, fontSize: isMobile ? 16 : 19, fontFamily: "Segoe UI,Tahoma,sans-serif", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>قوماش سەنتەر</div>
+            <div style={{ color: C.accent, fontSize: 12, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif", whiteSpace: "nowrap" }}>🏪 {branchName}</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button onClick={() => setShowBin(true)} style={{ background: "none", color: C.headerText, border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: "9px 18px", fontSize: 15, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain" }} /> سڕاوەکان
+        <div style={{ display: "flex", gap: isMobile ? 6 : 10, alignItems: "center", flexShrink: 0 }}>
+          <button onClick={() => setShowBin(true)} style={{ background: "none", color: C.headerText, border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: isMobile ? "8px 10px" : "9px 18px", fontSize: 15, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain" }} />
+            {!isMobile && <span>سڕاوەکان</span>}
             {bin.length > 0 && (
-              <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 22, height: 22, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: -8, left: -8 }}>
+              <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: -6, left: -6 }}>
                 {bin.length}
               </span>
             )}
           </button>
           {tab === "orders"
-            ? <Btn onClick={() => setModal("new")} color={C.accent} solid>+ داواکاری نوێ</Btn>
-            : <Btn onClick={() => setProfileModal("new")} color={C.accent} solid>+ پرۆفایلی نوێ</Btn>
+            ? <Btn onClick={() => setModal("new")} color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ داواکاری نوێ"}</Btn>
+            : <Btn onClick={() => setProfileModal("new")} color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ پرۆفایلی نوێ"}</Btn>
           }
-          <button onClick={onLogout} title="چوونەدەرەوە" style={{ background: "none", border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: "9px 14px", fontSize: 18, cursor: "pointer", color: C.muted, lineHeight: 1 }}>⏻</button>
+          <button onClick={onLogout} title="چوونەدەرەوە" style={{ background: "none", border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: isMobile ? "8px 10px" : "9px 14px", fontSize: 18, cursor: "pointer", color: C.muted, lineHeight: 1 }}>⏻</button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div style={{ background: C.header, display: "flex", padding: "0 30px", borderBottom: `2.5px solid ${C.accent}` }}>
+      <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 8px" : "0 30px", borderBottom: `2.5px solid ${C.accent}` }}>
         {[
           { key: "orders", icon: ordersIcon, label: "داواکارییەکان" },
           { key: "profiles", icon: personIcon, label: "کڕیارەکان" }
         ].map(({ key, icon, label }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             background: "none", border: "none", color: tab === key ? C.accent : C.muted,
-            fontSize: 16, fontWeight: tab === key ? 700 : 400, padding: "14px 22px",
+            fontSize: isMobile ? 14 : 16, fontWeight: tab === key ? 700 : 400,
+            padding: isMobile ? "12px 16px" : "14px 22px",
             cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif",
             borderBottom: tab === key ? `4px solid ${C.accent}` : "4px solid transparent",
-            marginBottom: -2.5,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
+            marginBottom: -2.5, display: "inline-flex", alignItems: "center", gap: 6,
           }}>
-            <img src={icon} alt={label} style={{ width: 18, height: 18, objectFit: "contain", filter: tab === key ? "none" : "grayscale(100%) opacity(0.7)" }} />
+            <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "none" : "grayscale(100%) opacity(0.7)" }} />
             <span>{label}</span>
             {key === "profiles" && (
-              <span style={{ marginRight: 8, background: C.muted, color: C.header, borderRadius: 20, padding: "2px 9px", fontSize: 13 }}>{profiles.length}</span>
+              <span style={{ marginRight: 6, background: C.muted, color: C.header, borderRadius: 20, padding: "2px 8px", fontSize: 12 }}>{profiles.length}</span>
             )}
           </button>
         ))}
@@ -161,30 +162,30 @@ export default function App({ branchId, branchName, onLogout }) {
 
       {tab === "orders" && <>
         <Dashboard orders={orders} activeFilter={filter} onFilter={setFilter} />
-        <div style={{ background: "#ede3cf", borderBottom: `1.5px solid ${C.border}`, padding: "16px 30px", display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ background: "#ede3cf", borderBottom: `1.5px solid ${C.border}`, padding: isMobile ? "10px 12px" : "16px 24px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, position: "relative" }}>
-            <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, objectFit: "contain", pointerEvents: "none" }} />
+            <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 17, height: 17, objectFit: "contain", pointerEvents: "none" }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="گەڕان بەپێی کۆد، ناو، یان ژمارەی مۆبایل..."
-              style={{ width: "100%", padding: "12px 42px 12px 16px", fontSize: 16, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
+              placeholder={isMobile ? "گەڕان..." : "گەڕان بەپێی کۆد، ناو، یان ژمارەی مۆبایل..."}
+              style={{ width: "100%", padding: "11px 38px 11px 14px", fontSize: 15, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
               onFocus={e => (e.target.style.borderColor = C.accent)}
               onBlur={e  => (e.target.style.borderColor = C.border)}
             />
           </div>
-          <div style={{ color: C.muted, fontSize: 15, whiteSpace: "nowrap" }}>{filtered.length} داواکاری</div>
+          <div style={{ color: C.muted, fontSize: 14, whiteSpace: "nowrap" }}>{filtered.length} داواکاری</div>
         </div>
-        <main style={{ padding: "30px 20px", maxWidth: 1600, margin: "0 auto" }}>
+        <main style={{ padding: isMobile ? "14px 10px" : "24px 20px", maxWidth: 1600, margin: "0 auto" }}>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", paddingTop: 70, color: C.muted }}>
+            <div style={{ textAlign: "center", paddingTop: 60, color: C.muted }}>
               <div style={{ marginBottom: 10 }}>
-                <img src={ordersIcon} alt="no orders" style={{ width: 48, height: 48, objectFit: "contain", filter: "grayscale(100%) opacity(0.6)" }} />
+                <img src={ordersIcon} alt="no orders" style={{ width: 44, height: 44, objectFit: "contain", filter: "grayscale(100%) opacity(0.6)" }} />
               </div>
-              <div style={{ fontSize: 17, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+              <div style={{ fontSize: 16, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
                 {search || filter !== "all" ? "هیچ داواکارییەک نەدۆزرایەوە" : "هیچ داواکارییەک تۆمار نەکراوە"}
               </div>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(370px,1fr))", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,370px),1fr))", gap: isMobile ? 12 : 20 }}>
               {filtered.map(o => <OrderCard key={o.id} order={o} onEdit={ord => setModal(ord)} onDelete={id => setConfirmDel(id)} onAddPayment={ord => setPayModal(ord)} />)}
             </div>
           )}

@@ -23,21 +23,21 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
   );
 
   return (
-    <div style={{ padding: "30px 20px", maxWidth: 1600, margin: "0 auto" }}>
+    <div style={{ padding: "16px 12px", maxWidth: 1600, margin: "0 auto" }}>
 
       {/* Search + add */}
-      <div style={{ display: "flex", gap: 14, marginBottom: 20, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "center" }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, objectFit: "contain", pointerEvents: "none" }} />
+          <img src={magnifyIcon} alt="search" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 17, height: 17, objectFit: "contain", pointerEvents: "none" }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="گەڕان بەپێی ناو یان ژمارە..."
-            style={{ width: "100%", padding: "12px 42px 12px 16px", fontSize: 16, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
+            style={{ width: "100%", padding: "11px 38px 11px 14px", fontSize: 15, border: `1.5px solid ${C.border}`, borderRadius: 10, background: C.card, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif", outline: "none", boxSizing: "border-box" }}
             onFocus={e => (e.target.style.borderColor = C.accent)}
             onBlur={e  => (e.target.style.borderColor = C.border)}
           />
         </div>
         <Btn onClick={onNewProfile} color={C.accent} solid>+ پرۆفایلی نوێ</Btn>
-        <div style={{ color: C.muted, fontSize: 15, whiteSpace: "nowrap" }}>{filtered.length} کڕیار</div>
+        <div style={{ color: C.muted, fontSize: 14, whiteSpace: "nowrap" }}>{filtered.length} کڕیار</div>
       </div>
 
       {filtered.length === 0 ? (
@@ -48,7 +48,7 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
           <div style={{ fontSize: 17, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>هیچ پرۆفایلێک نەدۆزرایەوە</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))", gap: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,340px),1fr))", gap: 12 }}>
           {filtered.map(p => {
             const pOrders      = orders.filter(o => normPhone(o.phone) === normPhone(p.phone));
             const latestOrder  = pOrders.sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""))[0];

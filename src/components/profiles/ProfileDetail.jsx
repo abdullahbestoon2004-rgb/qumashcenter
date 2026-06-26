@@ -5,11 +5,13 @@ import { STATUS_MAP, STATUS } from "../../constants/status";
 import { fmt, toNum } from "../../utils/format";
 import { remAmt, payStatus } from "../../utils/payment";
 import { normPhone } from "../../utils/phone";
+import { useIsMobile } from "../../utils/responsive";
 import Avatar from "../ui/Avatar";
 import Btn from "../ui/Btn";
 import noteIcon from "../../assets/images/note.png";
 
 export default function ProfileDetail({ profile, orders, onClose, onEdit, onDelete, onNewOrder }) {
+  const isMobile = useIsMobile();
   const profileOrders = useMemo(() =>
     orders
       .filter(o => normPhone(o.phone) === normPhone(profile.phone))
@@ -27,7 +29,7 @@ export default function ProfileDetail({ profile, orders, onClose, onEdit, onDele
       <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 680, border: `2px solid ${C.border}`, direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
 
         {/* Header */}
-        <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+        <div style={{ padding: isMobile ? "14px 14px 12px" : "24px 28px 20px", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <Avatar name={profile.name} size={64} />
@@ -44,7 +46,7 @@ export default function ProfileDetail({ profile, orders, onClose, onEdit, onDele
           </div>
 
           {/* Stats */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3,1fr)" : "repeat(3,1fr)", gap: isMobile ? 8 : 10, marginTop: 14 }}>
             {[
               { label: "کۆی داواکاری",   val: profileOrders.length,       color: C.text  },
               { label: "کۆی پارە",   val: `${fmt(totalSpent)} د.ع`,   color: C.green },
@@ -59,12 +61,12 @@ export default function ProfileDetail({ profile, orders, onClose, onEdit, onDele
         </div>
 
         {/* Body */}
-        <div style={{ overflowY: "auto", flex: 1, padding: "18px 28px 24px" }}>
+        <div style={{ overflowY: "auto", flex: 1, padding: isMobile ? "12px 14px 16px" : "18px 28px 24px" }}>
 
           {/* Measurements */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 14, color: C.muted, fontWeight: 600, marginBottom: 10, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>📐 قەبارەکانی ئەو</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: 10 }}>
               {MEASUREMENTS.map(({ key, label }) => (
                 <div key={key} style={{ background: C.strip, borderRadius: 8, padding: "10px 8px", textAlign: "center" }}>
                   <div style={{ fontSize: 12, color: C.muted }}>{label}</div>
