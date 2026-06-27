@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { useIsMobile } from "./utils/responsive";
 import { C } from "./constants/theme";
 import { EMPTY_FORM } from "./constants/forms";
 import { EMPTY_M } from "./constants/measurements";
@@ -8,6 +7,8 @@ import { todayISO } from "./utils/date";
 import { normPhone } from "./utils/phone";
 import { matchSearch } from "./utils/search";
 import { ls } from "./utils/storage";
+import { useIsMobile } from "./utils/responsive";
+import * as db from "./utils/db";
 
 import Dashboard     from "./components/orders/Dashboard";
 import OrderCard     from "./components/orders/OrderCard";
@@ -29,44 +30,65 @@ export default function App({ branchId, branchName, onLogout }) {
   const isMobile = useIsMobile();
   const K = k => `qumash_${branchId}_${k}`;
 
+  // Seed from localStorage cache instantly, then refresh from Supabase
   const [orders,       setOrders]       = useState(() => ls.load(K("orders"),   []));
   const [profiles,     setProfiles]     = useState(() => ls.load(K("profiles"), []));
   const [bin,          setBin]          = useState(() => ls.load(K("bin"),      []));
-  const [tab,          setTab]          = useState("orders");   // "orders" | "profiles"
+  const [loading,      setLoading]      = useState(true);
+  const [tab,          setTab]          = useState("orders");
   const [search,       setSearch]       = useState("");
   const [filter,       setFilter]       = useState("all");
-  const [modal,        setModal]        = useState(null);       // null | "new" | order
-  const [payModal,     setPayModal]     = useState(null);       // null | order
+  const [modal,        setModal]        = useState(null);
+  const [payModal,     setPayModal]     = useState(null);
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [showBin,      setShowBin]      = useState(false);
-  const [profileModal, setProfileModal] = useState(null);       // null | "new" | profile (edit) | { view: profile }
+  const [profileModal, setProfileModal] = useState(null);
 
+  // Load from Supabase on mount / branch change
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      db.loadOrders(branchId),
+      db.loadProfiles(branchId),
+      db.loadBin(branchId),
+    ]).then(([o, p, b]) => {
+      if (o !== null) { setOrders(o);   ls.save(K("orders"),   o); }
+      if (p !== null) { setProfiles(p); ls.save(K("profiles"), p); }
+      if (b !== null) { setBin(b);      ls.save(K("bin"),      b); }
+      setLoading(false);
+    });
+  }, [branchId]);
+
+  // Keep localStorage cache in sync
   useEffect(() => { ls.save(K("orders"),   orders);   }, [orders]);
   useEffect(() => { ls.save(K("profiles"), profiles); }, [profiles]);
   useEffect(() => { ls.save(K("bin"),      bin);      }, [bin]);
 
   function handleAddNewProfile(name) {
-    setProfiles(prev => [{ id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() }, ...prev]);
+    const p = { id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() };
+    setProfiles(prev => [p, ...prev]);
+    db.upsertProfile(p, branchId);
   }
 
-  // Auto-create/update profile when an order is saved
   function handleSaveOrder(order) {
     setOrders(prev => {
       const exists = prev.find(o => o.id === order.id);
       return exists ? prev.map(o => o.id === order.id ? order : o) : [order, ...prev];
     });
+    db.upsertOrder(order, branchId);
+
     setProfiles(prev => {
       const ph = normPhone(order.phone);
-      // Match by phone first, then fall back to a stub profile (no phone) with same name
       const existing = prev.find(p => normPhone(p.phone) === ph)
         || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === order.name.trim().toLowerCase());
       if (existing) {
-        return prev.map(p => p.id === existing.id
-          ? { ...p, name: order.name, phone: ph, measurements: { ...order.measurements } }
-          : p
-        );
+        const updated = { ...existing, name: order.name, phone: ph, measurements: { ...order.measurements } };
+        db.upsertProfile(updated, branchId);
+        return prev.map(p => p.id === existing.id ? updated : p);
       }
-      return [{ id: uuid(), name: order.name, phone: ph, measurements: { ...order.measurements }, notes: "", createdAt: todayISO() }, ...prev];
+      const newP = { id: uuid(), name: order.name, phone: ph, measurements: { ...order.measurements }, notes: "", createdAt: todayISO() };
+      db.upsertProfile(newP, branchId);
+      return [newP, ...prev];
     });
     setModal(null);
   }
@@ -76,24 +98,30 @@ export default function App({ branchId, branchName, onLogout }) {
       const exists = prev.find(p => p.id === profile.id);
       return exists ? prev.map(p => p.id === profile.id ? profile : p) : [profile, ...prev];
     });
+    db.upsertProfile(profile, branchId);
     setProfileModal(null);
   }
 
   function handleDeleteProfile(id) {
     setProfiles(prev => prev.filter(p => p.id !== id));
+    db.deleteProfile(id);
     setProfileModal(null);
   }
 
   function handleAddPayment(updatedOrder) {
     setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    db.upsertOrder(updatedOrder, branchId);
     setPayModal(null);
   }
 
   function handleDeleteOrder(id) {
     const target = orders.find(o => o.id === id);
     if (!target) return;
+    const withDate = { ...target, deletedAt: todayISO() };
     setOrders(prev => prev.filter(o => o.id !== id));
-    setBin(prev => [{ ...target, deletedAt: todayISO() }, ...prev]);
+    setBin(prev => [withDate, ...prev]);
+    db.deleteOrder(id);
+    db.addToBin(target, branchId);
   }
 
   function handleNewOrderForProfile(profile) {
@@ -106,6 +134,16 @@ export default function App({ branchId, branchName, onLogout }) {
     orders.filter(o => (!search || matchSearch(o, search)) && (filter === "all" || o.status === filter)),
     [orders, search, filter]
   );
+
+  // Loading screen
+  if (loading && orders.length === 0) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, direction: "rtl" }}>
+        <img src={scissorsIcon} alt="scissors" style={{ width: 40, height: 40, objectFit: "contain", opacity: 0.5 }} />
+        <div style={{ fontSize: 16, color: C.muted, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>چاوەڕوان بە...</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, direction: "rtl" }}>
@@ -211,9 +249,17 @@ export default function App({ branchId, branchName, onLogout }) {
             const { deletedAt, ...o } = t;
             setBin(prev => prev.filter(x => x.id !== id));
             setOrders(prev => [o, ...prev]);
+            db.removeFromBin(id);
+            db.upsertOrder(o, branchId);
           }}
-          onPermanentDelete={id => setBin(prev => prev.filter(o => o.id !== id))}
-          onClearAll={() => setBin([])}
+          onPermanentDelete={id => {
+            setBin(prev => prev.filter(o => o.id !== id));
+            db.removeFromBin(id);
+          }}
+          onClearAll={() => {
+            setBin([]);
+            db.clearBin(branchId);
+          }}
           onClose={() => setShowBin(false)}
         />
       )}
