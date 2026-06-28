@@ -25,6 +25,7 @@ import magnifyIcon  from "./assets/images/magnify.png";
 import ordersIcon   from "./assets/images/orders.png";
 import personIcon   from "./assets/images/person.png";
 import scissorsIcon from "./assets/images/scissors.png";
+import logoImg      from "./assets/images/qumashcenterlogo.png";
 
 export default function App({ branchId, branchName, onLogout }) {
   const isMobile = useIsMobile();
@@ -146,7 +147,10 @@ export default function App({ branchId, branchName, onLogout }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, direction: "rtl" }}>
+    <div style={{ minHeight: "100vh", background: C.bg, direction: "rtl", position: "relative" }}>
+      <div style={{ position: "fixed", inset: 0, backgroundImage: `url(${logoImg})`, backgroundRepeat: "no-repeat", backgroundPosition: "center", backgroundSize: "480px", opacity: 0.06, pointerEvents: "none" }} />
+
+      <div style={{ position: "relative", zIndex: 1 }}>
 
       {/* Header */}
       <header style={{ background: C.header, padding: isMobile ? "0 12px" : "0 30px", display: "flex", alignItems: "center", justifyContent: "space-between", height: isMobile ? 60 : 72, position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 12px rgba(0,0,0,.25)" }}>
@@ -301,6 +305,8 @@ export default function App({ branchId, branchName, onLogout }) {
           onNewOrder={handleNewOrderForProfile}
         />
       )}
+
+      </div>{/* end content wrapper */}
     </div>
   );
 }
