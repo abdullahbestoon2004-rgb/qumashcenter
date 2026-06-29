@@ -158,7 +158,7 @@ export default function App({ branchId, branchName, onLogout }) {
           <img src={scissorsIcon} alt="scissors" style={{ width: isMobile ? 22 : 28, height: isMobile ? 22 : 28, objectFit: "contain", flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ color: C.headerText, fontWeight: 700, fontSize: isMobile ? 16 : 19, fontFamily: "Segoe UI,Tahoma,sans-serif", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>قوماش سەنتەر</div>
-            <div style={{ color: C.accent, fontSize: 12, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif", whiteSpace: "nowrap" }}>🏪 {branchName}</div>
+            <div style={{ color: C.accent, fontSize: 12, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif", whiteSpace: "nowrap" }}>{branchName}</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: isMobile ? 6 : 10, alignItems: "center", flexShrink: 0 }}>
