@@ -199,10 +199,10 @@ export default function App({ branchId, branchName, onLogout }) {
       {/* Tabs */}
       <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 4px" : "0 30px", borderBottom: `2.5px solid ${C.accent}`, overflowX: "auto" }}>
         {[
-          { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null },
-          { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null },
-          { key: "finance",  icon: financeIcon,  label: "ڕاپۆرتی دارایی" },
-        ].map(({ key, icon, label, emoji }) => (
+          { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null, size: 17 },
+          { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null, size: 17 },
+          { key: "finance",  icon: financeIcon,  label: "ڕاپۆرتی دارایی", size: 22 },
+        ].map(({ key, icon, label, emoji, size }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             flexShrink: 0,
             background: "none", border: "none", color: tab === key ? C.accent : C.muted,
@@ -214,7 +214,7 @@ export default function App({ branchId, branchName, onLogout }) {
           }}>
             {emoji
               ? <span style={{ fontSize: 16 }}>{emoji}</span>
-              : <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%)" : "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%) opacity(0.45)" }} />
+              : <img src={icon} alt={label} style={{ width: size, height: size, objectFit: "contain", filter: tab === key ? "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%)" : "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%) opacity(0.45)" }} />
             }
             <span>{label}</span>
             {key === "profiles" && (
