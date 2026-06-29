@@ -17,6 +17,7 @@ import PaymentModal  from "./components/orders/PaymentModal";
 import ProfilesTab   from "./components/profiles/ProfilesTab";
 import ProfileForm   from "./components/profiles/ProfileForm";
 import ProfileDetail from "./components/profiles/ProfileDetail";
+import FinanceTab    from "./components/finance/FinanceTab";
 import DeleteConfirm from "./components/shared/DeleteConfirm";
 import BinPanel      from "./components/shared/BinPanel";
 import Btn           from "./components/ui/Btn";
@@ -171,32 +172,35 @@ export default function App({ branchId, branchName, onLogout }) {
               </span>
             )}
           </button>
-          {tab === "orders"
-            ? <Btn onClick={() => setModal("new")} color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ داواکاری نوێ"}</Btn>
-            : <Btn onClick={() => setProfileModal("new")} color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ پرۆفایلی نوێ"}</Btn>
-          }
+          {tab === "orders"   && <Btn onClick={() => setModal("new")}       color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ داواکاری نوێ"}</Btn>}
+          {tab === "profiles" && <Btn onClick={() => setProfileModal("new")} color={C.accent} solid small={isMobile}>{isMobile ? "+" : "+ پرۆفایلی نوێ"}</Btn>}
           <button onClick={onLogout} title="چوونەدەرەوە" style={{ background: "none", border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: isMobile ? "8px 10px" : "9px 14px", fontSize: 18, cursor: "pointer", color: C.muted, lineHeight: 1 }}>⏻</button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 8px" : "0 30px", borderBottom: `2.5px solid ${C.accent}` }}>
+      <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 4px" : "0 30px", borderBottom: `2.5px solid ${C.accent}`, overflowX: "auto" }}>
         {[
-          { key: "orders", icon: ordersIcon, label: "داواکارییەکان" },
-          { key: "profiles", icon: personIcon, label: "کڕیارەکان" }
-        ].map(({ key, icon, label }) => (
+          { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null },
+          { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null },
+          { key: "finance",  icon: null,        label: "ڕاپۆرتی دارایی", emoji: "📊" },
+        ].map(({ key, icon, label, emoji }) => (
           <button key={key} onClick={() => setTab(key)} style={{
+            flexShrink: 0,
             background: "none", border: "none", color: tab === key ? C.accent : C.muted,
-            fontSize: isMobile ? 14 : 16, fontWeight: tab === key ? 700 : 400,
-            padding: isMobile ? "12px 16px" : "14px 22px",
+            fontSize: isMobile ? 13 : 15, fontWeight: tab === key ? 700 : 400,
+            padding: isMobile ? "12px 12px" : "14px 22px",
             cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif",
             borderBottom: tab === key ? `4px solid ${C.accent}` : "4px solid transparent",
             marginBottom: -2.5, display: "inline-flex", alignItems: "center", gap: 6,
           }}>
-            <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "none" : "grayscale(100%) opacity(0.7)" }} />
+            {emoji
+              ? <span style={{ fontSize: 16 }}>{emoji}</span>
+              : <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "none" : "grayscale(100%) opacity(0.7)" }} />
+            }
             <span>{label}</span>
             {key === "profiles" && (
-              <span style={{ marginRight: 6, background: C.muted, color: C.header, borderRadius: 20, padding: "2px 8px", fontSize: 12 }}>{profiles.length}</span>
+              <span style={{ marginRight: 4, background: C.muted, color: C.header, borderRadius: 20, padding: "2px 7px", fontSize: 11 }}>{profiles.length}</span>
             )}
           </button>
         ))}
@@ -233,6 +237,8 @@ export default function App({ branchId, branchName, onLogout }) {
           )}
         </main>
       </>}
+
+      {tab === "finance" && <FinanceTab orders={orders} />}
 
       {tab === "profiles" && (
         <ProfilesTab
