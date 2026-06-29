@@ -182,7 +182,7 @@ export default function App({ branchId, branchName, onLogout }) {
         </div>
         <div style={{ display: "flex", gap: isMobile ? 6 : 10, alignItems: "center", flexShrink: 0 }}>
           <button onClick={() => setShowBin(true)} style={{ background: "none", color: C.headerText, border: `1.5px solid ${C.muted}`, borderRadius: 10, padding: isMobile ? "8px 10px" : "9px 18px", fontSize: 15, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+            <img src={binIcon} alt="bin" style={{ width: 16, height: 16, objectFit: "contain", filter: "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%)" }} />
             {!isMobile && <span>سڕاوەکان</span>}
             {bin.length > 0 && (
               <span style={{ background: C.red, color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", position: "absolute", top: -6, left: -6 }}>
@@ -214,7 +214,7 @@ export default function App({ branchId, branchName, onLogout }) {
           }}>
             {emoji
               ? <span style={{ fontSize: 16 }}>{emoji}</span>
-              : <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "brightness(0) invert(1)" : "brightness(0) invert(1) opacity(0.5)" }} />
+              : <img src={icon} alt={label} style={{ width: 17, height: 17, objectFit: "contain", filter: tab === key ? "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%)" : "brightness(0) saturate(100%) invert(55%) sepia(45%) saturate(500%) hue-rotate(358deg) brightness(95%) contrast(88%) opacity(0.45)" }} />
             }
             <span>{label}</span>
             {key === "profiles" && (
