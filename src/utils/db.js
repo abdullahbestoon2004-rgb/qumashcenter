@@ -19,6 +19,8 @@ function orderFromDb(row) {
     orderDate:    row.order_date    ?? "",
     deliveryDate: row.delivery_date ?? "",
     measurements: row.measurements  ?? {},
+    fabricColor:  row.fabric_color  ?? "",
+    fabricPhoto:  row.fabric_photo  ?? "",
   };
 }
 
@@ -40,6 +42,8 @@ function orderToDb(order, branchId) {
     order_date:     order.orderDate    ?? "",
     delivery_date:  order.deliveryDate ?? "",
     measurements:   order.measurements ?? {},
+    fabric_color:   order.fabricColor  ?? "",
+    fabric_photo:   order.fabricPhoto  ?? "",
   };
 }
 
@@ -145,4 +149,64 @@ export async function removeFromBin(orderId) {
 export async function clearBin(branchId) {
   const { error } = await supabase.from("bin").delete().eq("branch_id", branchId);
   if (error) console.error("clearBin:", error.message);
+}
+
+// ── fabric photo upload ───────────────────────────────────────────────
+
+export async function uploadFabricPhoto(file, orderId, branchId) {
+  const ext  = file.name.split(".").pop() || "jpg";
+  const path = `${branchId}/${orderId}.${ext}`;
+  const { error } = await supabase.storage
+    .from("fabric-photos")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) { console.error("uploadFabricPhoto:", error.message); return null; }
+  const { data } = supabase.storage.from("fabric-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ── expenses ──────────────────────────────────────────────────────────
+
+function expenseFromDb(row) {
+  return {
+    id:          row.id,
+    description: row.description ?? "",
+    amount:      row.amount      ?? "0",
+    currency:    row.currency    ?? "IQD",
+    category:    row.category    ?? "",
+    date:        row.date        ?? "",
+  };
+}
+
+function expenseToDb(expense, branchId) {
+  return {
+    id:          expense.id,
+    branch_id:   branchId,
+    description: expense.description,
+    amount:      expense.amount,
+    currency:    expense.currency  ?? "IQD",
+    category:    expense.category  ?? "",
+    date:        expense.date,
+  };
+}
+
+export async function loadExpenses(branchId) {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("branch_id", branchId)
+    .order("date", { ascending: false });
+  if (error) { console.error("loadExpenses:", error.message); return null; }
+  return data.map(expenseFromDb);
+}
+
+export async function upsertExpense(expense, branchId) {
+  const { error } = await supabase
+    .from("expenses")
+    .upsert(expenseToDb(expense, branchId), { onConflict: "id" });
+  if (error) console.error("upsertExpense:", error.message);
+}
+
+export async function deleteExpense(id) {
+  const { error } = await supabase.from("expenses").delete().eq("id", id);
+  if (error) console.error("deleteExpense:", error.message);
 }

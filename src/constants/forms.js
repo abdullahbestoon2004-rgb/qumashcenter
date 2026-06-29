@@ -11,6 +11,8 @@ export const EMPTY_FORM = {
   paymentLog:   [],
   style:        "",
   fabric:       "",
+  fabricColor:  "",
+  fabricPhoto:  "",
   status:       "pending",
   notes:        "",
   orderDate:    todayISO(),

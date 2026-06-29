@@ -76,17 +76,36 @@ export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
-        {[["شێواز", order.style], ["قوماش", order.fabric]].map(([l, v]) => (
-          <div key={l}>
-            <div style={{ fontSize: 12, color: C.muted }}>{l}</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{v || "—"}</div>
+        <div>
+          <div style={{ fontSize: 12, color: C.muted }}>شێواز</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>{order.style || "—"}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, color: C.muted }}>قوماش</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
+            {order.fabricColor && (
+              <span title={order.fabricColor} style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", background: /^#[0-9A-Fa-f]{6}$/.test(order.fabricColor) ? order.fabricColor : C.border, border: `1.5px solid ${C.border}`, flexShrink: 0 }} />
+            )}
+            {order.fabric || "—"}
+            {order.fabricColor && <span style={{ fontSize: 11, color: C.muted }}>{order.fabricColor}</span>}
           </div>
-        ))}
+        </div>
         <div>
           <div style={{ fontSize: 12, color: C.muted }}>گشتی</div>
           <div style={{ fontSize: 17, fontWeight: 700, color: C.accent }}>{fmt(order.totalPrice)} <span style={{ fontSize: 12 }}>{cur}</span></div>
         </div>
       </div>
+
+      {order.fabricPhoto && (
+        <div style={{ marginBottom: 10 }}>
+          <img
+            src={order.fabricPhoto}
+            alt="fabric"
+            style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 10, border: `1.5px solid ${C.border}`, cursor: "pointer" }}
+            onClick={() => window.open(order.fabricPhoto, "_blank")}
+          />
+        </div>
+      )}
 
       <div style={{ background: ps.bg, borderRadius: 8, padding: "7px 12px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
         <div style={{ display: "flex", gap: 12 }}>

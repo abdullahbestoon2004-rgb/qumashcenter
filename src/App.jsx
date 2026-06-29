@@ -36,6 +36,7 @@ export default function App({ branchId, branchName, onLogout }) {
   const [orders,       setOrders]       = useState(() => ls.load(K("orders"),   []));
   const [profiles,     setProfiles]     = useState(() => ls.load(K("profiles"), []));
   const [bin,          setBin]          = useState(() => ls.load(K("bin"),      []));
+  const [expenses,     setExpenses]     = useState(() => ls.load(K("expenses"), []));
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState("orders");
   const [search,       setSearch]       = useState("");
@@ -53,10 +54,12 @@ export default function App({ branchId, branchName, onLogout }) {
       db.loadOrders(branchId),
       db.loadProfiles(branchId),
       db.loadBin(branchId),
-    ]).then(([o, p, b]) => {
+      db.loadExpenses(branchId),
+    ]).then(([o, p, b, e]) => {
       if (o !== null) { setOrders(o);   ls.save(K("orders"),   o); }
       if (p !== null) { setProfiles(p); ls.save(K("profiles"), p); }
       if (b !== null) { setBin(b);      ls.save(K("bin"),      b); }
+      if (e !== null) { setExpenses(e); ls.save(K("expenses"), e); }
       setLoading(false);
     });
   }, [branchId]);
@@ -65,6 +68,20 @@ export default function App({ branchId, branchName, onLogout }) {
   useEffect(() => { ls.save(K("orders"),   orders);   }, [orders]);
   useEffect(() => { ls.save(K("profiles"), profiles); }, [profiles]);
   useEffect(() => { ls.save(K("bin"),      bin);      }, [bin]);
+  useEffect(() => { ls.save(K("expenses"), expenses); }, [expenses]);
+
+  function handleSaveExpense(expense) {
+    setExpenses(prev => {
+      const exists = prev.find(e => e.id === expense.id);
+      return exists ? prev.map(e => e.id === expense.id ? expense : e) : [expense, ...prev];
+    });
+    db.upsertExpense(expense, branchId);
+  }
+
+  function handleDeleteExpense(id) {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+    db.deleteExpense(id);
+  }
 
   function handleAddNewProfile(name) {
     const p = { id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() };
@@ -183,7 +200,7 @@ export default function App({ branchId, branchName, onLogout }) {
         {[
           { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null },
           { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null },
-          { key: "finance",  icon: null,        label: "ڕاپۆرتی دارایی", emoji: "📊" },
+          { key: "finance",  icon: null,        label: "ڕاپۆرتی دارایی", emoji: null },
         ].map(({ key, icon, label, emoji }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             flexShrink: 0,
@@ -238,7 +255,7 @@ export default function App({ branchId, branchName, onLogout }) {
         </main>
       </>}
 
-      {tab === "finance" && <FinanceTab orders={orders} />}
+      {tab === "finance" && <FinanceTab orders={orders} expenses={expenses} onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense} />}
 
       {tab === "profiles" && (
         <ProfilesTab
@@ -286,6 +303,7 @@ export default function App({ branchId, branchName, onLogout }) {
         <OrderModal
           order={modal === "new" ? null : modal}
           allOrders={orders} profiles={profiles}
+          branchId={branchId}
           onClose={() => setModal(null)}
           onSave={handleSaveOrder}
           onAddNewProfile={handleAddNewProfile}

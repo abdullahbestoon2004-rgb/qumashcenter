@@ -8,6 +8,7 @@ import { toNum, fmt } from "../../utils/format";
 import { remAmt } from "../../utils/payment";
 import { normPhone, validPhone } from "../../utils/phone";
 import { useIsMobile } from "../../utils/responsive";
+import { uploadFabricPhoto } from "../../utils/db";
 import Lbl from "../ui/Lbl";
 import FieldErr from "../ui/FieldErr";
 import Inp from "../ui/Inp";
@@ -21,20 +22,38 @@ function nextOrderCode(orders) {
   return nums.length ? String(Math.max(...nums) + 1) : "1";
 }
 
-export default function OrderModal({ order, allOrders, profiles, onClose, onSave, onAddNewProfile }) {
+export default function OrderModal({ order, allOrders, profiles, branchId, onClose, onSave, onAddNewProfile }) {
   const isMobile = useIsMobile();
   const isEdit = !!order;
   const [form, setForm] = useState(() =>
     order ? { ...order, measurements: { ...order.measurements } }
-          : { ...EMPTY_FORM, measurements: { ...EMPTY_M }, code: nextOrderCode(allOrders) }
+          : { ...EMPTY_FORM, measurements: { ...EMPTY_M }, code: nextOrderCode(allOrders), id: uuid() }
   );
-  const [errors, setErrors] = useState({});
-  const [showNameDrop, setShowNameDrop] = useState(false);
-  const [newClientAdded, setNewClientAdded] = useState(false);
+  const [errors,        setErrors]       = useState({});
+  const [showNameDrop,  setShowNameDrop] = useState(false);
+  const [newClientAdded,setNewClientAdded] = useState(false);
+  const [photoFile,     setPhotoFile]    = useState(null);
+  const [photoPreview,  setPhotoPreview] = useState(order?.fabricPhoto || null);
+  const [saving,        setSaving]       = useState(false);
   const mRefs       = useRef([]);
   const firstRef    = useRef(null);
   const nameWrapRef = useRef(null);
+  const photoRef    = useRef(null);
   useEffect(() => { firstRef.current?.focus(); }, []);
+
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  function clearPhoto() {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    sf("fabricPhoto", "");
+    if (photoRef.current) photoRef.current.value = "";
+  }
 
   useEffect(() => {
     function handleOutside(e) {
@@ -109,14 +128,21 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
     return e;
   }
 
-  function handleSave() {
+  async function handleSave() {
     const e = validate();
     if (Object.keys(e).length) {
       setErrors(e);
       document.getElementById("mf-" + Object.keys(e)[0])?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    onSave({ ...form, id: form.id || uuid() });
+    setSaving(true);
+    let fabricPhoto = form.fabricPhoto || "";
+    if (photoFile && branchId) {
+      const url = await uploadFabricPhoto(photoFile, form.id, branchId);
+      if (url) fabricPhoto = url;
+    }
+    onSave({ ...form, fabricPhoto });
+    setSaving(false);
   }
 
   return (
@@ -277,6 +303,70 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
           </div>
         </div>
 
+        {/* Fabric color + photo */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          {/* Color code */}
+          <div style={{ flex: 1, minWidth: isMobile ? "100%" : 0 }}>
+            <Lbl>کۆدی رەنگی قوماش</Lbl>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="color"
+                value={/^#[0-9A-Fa-f]{6}$/.test(form.fabricColor) ? form.fabricColor : "#c0a080"}
+                onChange={e => sf("fabricColor", e.target.value)}
+                title="رەنگ هەڵبژێرە"
+                style={{ width: 42, height: 40, padding: 3, border: `1.5px solid ${C.border}`, borderRadius: 8, cursor: "pointer", background: "none", flexShrink: 0 }}
+              />
+              <Inp
+                value={form.fabricColor}
+                placeholder="#3a5f8a یان Navy Blue"
+                onChange={e => sf("fabricColor", e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Photo capture */}
+          <div style={{ flex: 1, minWidth: isMobile ? "100%" : 0 }}>
+            <Lbl>وێنەی قوماش</Lbl>
+            <input
+              ref={photoRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoChange}
+              style={{ display: "none" }}
+            />
+            {photoPreview ? (
+              <div style={{ position: "relative", display: "inline-block", width: "100%" }}>
+                <img
+                  src={photoPreview}
+                  alt="fabric"
+                  style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 10, border: `1.5px solid ${C.border}`, display: "block" }}
+                />
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 10, display: "flex", gap: 6, alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.35)", opacity: 0 }}
+                  onMouseEnter={e => (e.currentTarget.style.opacity = 1)}
+                  onMouseLeave={e => (e.currentTarget.style.opacity = 0)}
+                >
+                  <button onClick={() => photoRef.current?.click()}
+                    style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: "#fff", color: C.text, fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                    گۆڕین
+                  </button>
+                  <button onClick={clearPhoto}
+                    style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: C.red, color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                    سڕینەوە
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => photoRef.current?.click()}
+                style={{ width: "100%", height: 44, border: `1.5px dashed ${C.border}`, borderRadius: 10, background: C.strip, color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>📷</span>
+                وێنە بگرە / هەڵبژێرە
+              </button>
+            )}
+          </div>
+        </div>
+
         <div style={{ marginBottom: 12 }}>
           <Lbl>تێبینی</Lbl>
           <textarea value={form.notes} onChange={e => sf("notes", e.target.value)}
@@ -353,9 +443,9 @@ export default function OrderModal({ order, allOrders, profiles, onClose, onSave
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span>پاشەکەوتکردن</span>
-            <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />
+          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: saving ? 0.7 : 1 }}>
+            <span>{saving ? "چاوەڕوان بە..." : "پاشەکەوتکردن"}</span>
+            {!saving && <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />}
           </Btn>
           <Btn onClick={onClose} color={C.muted}>هەڵوەشاندن</Btn>
         </div>
