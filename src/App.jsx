@@ -27,6 +27,7 @@ import ordersIcon   from "./assets/images/orders.png";
 import personIcon   from "./assets/images/person.png";
 import scissorsIcon from "./assets/images/scissors.png";
 import logoImg      from "./assets/images/qumashcenterlogo.png";
+import financeIcon  from "./assets/images/financial.png";
 
 export default function App({ branchId, branchName, onLogout }) {
   const isMobile = useIsMobile();
@@ -200,7 +201,7 @@ export default function App({ branchId, branchName, onLogout }) {
         {[
           { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null },
           { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null },
-          { key: "finance",  icon: null,        label: "ڕاپۆرتی دارایی", emoji: null },
+          { key: "finance",  icon: financeIcon,  label: "ڕاپۆرتی دارایی" },
         ].map(({ key, icon, label, emoji }) => (
           <button key={key} onClick={() => setTab(key)} style={{
             flexShrink: 0,
