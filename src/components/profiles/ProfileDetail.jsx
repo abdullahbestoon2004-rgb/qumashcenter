@@ -14,9 +14,9 @@ export default function ProfileDetail({ profile, orders, onClose, onEdit, onDele
   const isMobile = useIsMobile();
   const profileOrders = useMemo(() =>
     orders
-      .filter(o => normPhone(o.phone) === normPhone(profile.phone))
+      .filter(o => normPhone(o.phone) === normPhone(profile.phone) && o.name.trim().toLowerCase() === profile.name.trim().toLowerCase())
       .sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || "")),
-    [orders, profile.phone]
+    [orders, profile.phone, profile.name]
   );
   const totalSpent = profileOrders.reduce((s, o) => s + toNum(o.totalPrice), 0);
   const totalDebt  = profileOrders.reduce((s, o) => s + remAmt(o.totalPrice, o.paidAmount), 0);

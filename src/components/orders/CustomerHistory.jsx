@@ -20,7 +20,7 @@ export default function CustomerHistory({ phone, orders, currentId }) {
       </div>
       {prev.slice(0, 3).map(o => (
         <div key={o.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#6a4a2a", fontFamily: "Segoe UI,Tahoma,sans-serif", padding: "4px 0" }}>
-          <span>کۆد: {o.code}</span>
+          <span>کۆد: {o.code} — {o.name}</span>
           <span>{o.deliveryDate || "—"}</span>
           <span>{fmt(o.totalPrice)} د.ع</span>
         </div>

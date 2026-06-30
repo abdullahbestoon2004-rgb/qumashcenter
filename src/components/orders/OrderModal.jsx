@@ -75,10 +75,10 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
     [form.phone, allOrders, form.id]
   );
 
-  const profileMatch = useMemo(() =>
-    profiles.find(p => normPhone(p.phone) === normPhone(form.phone)),
-    [form.phone, profiles]
-  );
+  const profileMatches = useMemo(() => {
+    const ph = normPhone(form.phone);
+    return ph ? profiles.filter(p => normPhone(p.phone) === ph) : [];
+  }, [form.phone, profiles]);
 
   const nameMatches = useMemo(() => {
     const q = form.name.trim().toLowerCase();
@@ -159,13 +159,24 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
 
         <CustomerHistory phone={form.phone} orders={allOrders} currentId={form.id} />
 
-        {profileMatch && (
-          <div style={{ background: "#f0e8f8", border: "1px solid #c39bd3", borderRadius: 10, padding: "8px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 14, color: C.purple, fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
-              <img src={personIcon} alt="profile" style={{ width: 16, height: 16, objectFit: "contain" }} />
-              <span>پرۆفایلی <strong>{profileMatch.name}</strong> دۆزرایەوە</span>
-            </div>
-            <Btn onClick={() => setForm(f => ({ ...f, name: profileMatch.name, measurements: { ...profileMatch.measurements } }))} color={C.purple} small>بارکردنی قیاسەکان</Btn>
+        {profileMatches.length > 0 && (
+          <div style={{ background: "#f0e8f8", border: "1px solid #c39bd3", borderRadius: 10, padding: "8px 12px", marginBottom: 12 }}>
+            {profileMatches.length > 1 && (
+              <div style={{ fontSize: 13, color: C.purple, fontWeight: 700, marginBottom: 6, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                {profileMatches.length} کڕیار ئەم ژمارەیە بەکاردێنن — کامیان؟
+              </div>
+            )}
+            {profileMatches.map(pm => (
+              <div key={pm.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
+                <div style={{ fontSize: 14, color: C.purple, fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", gap: 6 }}>
+                  <img src={personIcon} alt="profile" style={{ width: 16, height: 16, objectFit: "contain" }} />
+                  {profileMatches.length > 1
+                    ? <span><strong>{pm.name}</strong></span>
+                    : <span>پرۆفایلی <strong>{pm.name}</strong> دۆزرایەوە</span>}
+                </div>
+                <Btn onClick={() => setForm(f => ({ ...f, name: pm.name, measurements: { ...pm.measurements } }))} color={C.purple} small>بارکردنی قیاسەکان</Btn>
+              </div>
+            ))}
           </div>
         )}
 

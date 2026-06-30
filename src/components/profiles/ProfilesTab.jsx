@@ -50,7 +50,7 @@ export default function ProfilesTab({ profiles, orders, onNewProfile, onEditProf
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(min(100%,340px),1fr))", gap: 12 }}>
           {filtered.map(p => {
-            const pOrders      = orders.filter(o => normPhone(o.phone) === normPhone(p.phone));
+            const pOrders      = orders.filter(o => normPhone(o.phone) === normPhone(p.phone) && o.name.trim().toLowerCase() === p.name.trim().toLowerCase());
             const latestOrder  = pOrders.sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""))[0];
             const latestStatus = latestOrder ? STATUS_MAP[latestOrder.status] : null;
             const debt         = pOrders.reduce((s, o) => s + remAmt(o.totalPrice, o.paidAmount), 0);

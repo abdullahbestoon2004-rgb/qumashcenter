@@ -99,8 +99,11 @@ export default function App({ branchId, branchName, onLogout }) {
 
     setProfiles(prev => {
       const ph = normPhone(order.phone);
-      const existing = prev.find(p => normPhone(p.phone) === ph)
-        || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === order.name.trim().toLowerCase());
+      const nm = order.name.trim().toLowerCase();
+      // Match an existing profile only when BOTH phone and name agree — two different
+      // clients can share a phone number, so phone alone must never rename another client.
+      const existing = prev.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm)
+        || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === nm);
       if (existing) {
         const updated = { ...existing, name: order.name, phone: ph, measurements: { ...order.measurements } };
         db.upsertProfile(updated, branchId);
