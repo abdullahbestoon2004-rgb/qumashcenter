@@ -197,7 +197,7 @@ export default function App({ branchId, branchName, onLogout }) {
       </header>
 
       {/* Tabs */}
-      <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 4px" : "0 30px", borderBottom: `2.5px solid ${C.accent}`, overflowX: "auto" }}>
+      <div style={{ background: C.header, display: "flex", padding: isMobile ? "0 4px" : "0 30px", borderBottom: `2.5px solid ${C.accent}` }}>
         {[
           { key: "orders",   icon: ordersIcon,  label: "داواکارییەکان", emoji: null, size: 17 },
           { key: "profiles", icon: personIcon,  label: "کڕیارەکان",    emoji: null, size: 17 },
