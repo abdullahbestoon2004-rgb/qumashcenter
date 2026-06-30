@@ -2,6 +2,7 @@ import { useState } from "react";
 import { C } from "../../constants/theme";
 import { BRANCHES } from "../../constants/branches";
 import scissorsIcon from "../../assets/images/scissors.png";
+import storeIcon    from "../../assets/images/store.png";
 
 export default function LoginScreen({ onLogin }) {
   const [selected, setSelected] = useState(null);
@@ -49,11 +50,12 @@ export default function LoginScreen({ onLogin }) {
               background: active ? C.header : C.card,
               color: active ? C.headerText : C.text,
               fontFamily: "Segoe UI,Tahoma,sans-serif", fontSize: 17, fontWeight: 700,
-              transition: "all .18s", textAlign: "center",
+              transition: "all .18s",
+              display: "flex", flexDirection: "column", alignItems: "center",
               boxShadow: active ? `0 8px 28px rgba(61,44,30,.25)` : "0 2px 10px rgba(0,0,0,.07)",
               transform: active ? "translateY(-3px)" : "none",
             }}>
-              <div style={{ fontSize: 34, marginBottom: 10 }}>🏪</div>
+              <img src={storeIcon} alt="store" style={{ width: 44, height: 44, objectFit: "contain", marginBottom: 10 }} />
               {b.name}
             </button>
           );

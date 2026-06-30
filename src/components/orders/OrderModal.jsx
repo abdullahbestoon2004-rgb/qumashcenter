@@ -34,11 +34,13 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
   const [newClientAdded,setNewClientAdded] = useState(false);
   const [photoFile,     setPhotoFile]    = useState(null);
   const [photoPreview,  setPhotoPreview] = useState(order?.fabricPhoto || null);
+  const [photoErr,      setPhotoErr]     = useState("");
   const [saving,        setSaving]       = useState(false);
   const mRefs       = useRef([]);
   const firstRef    = useRef(null);
   const nameWrapRef = useRef(null);
-  const photoRef    = useRef(null);
+  const cameraRef   = useRef(null);
+  const galleryRef  = useRef(null);
   useEffect(() => { firstRef.current?.focus(); }, []);
 
   function handlePhotoChange(e) {
@@ -52,7 +54,8 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
     setPhotoFile(null);
     setPhotoPreview(null);
     sf("fabricPhoto", "");
-    if (photoRef.current) photoRef.current.value = "";
+    if (cameraRef.current)  cameraRef.current.value  = "";
+    if (galleryRef.current) galleryRef.current.value = "";
   }
 
   useEffect(() => {
@@ -136,10 +139,17 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
       return;
     }
     setSaving(true);
+    setPhotoErr("");
     let fabricPhoto = form.fabricPhoto || "";
     if (photoFile && branchId) {
-      const url = await uploadFabricPhoto(photoFile, form.id, branchId);
-      if (url) fabricPhoto = url;
+      const { url, error } = await uploadFabricPhoto(photoFile, form.id, branchId);
+      if (url) {
+        fabricPhoto = url;
+      } else {
+        setSaving(false);
+        setPhotoErr("وێنە پاشەکەوت نەکرا: " + (error || "هەڵەیەکی نەناسراو"));
+        return;
+      }
     }
     onSave({ ...form, fabricPhoto });
     setSaving(false);
@@ -338,11 +348,20 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
           {/* Photo capture */}
           <div style={{ flex: 1, minWidth: isMobile ? "100%" : 0 }}>
             <Lbl>وێنەی قوماش</Lbl>
+            {/* Camera input — opens the camera directly on mobile */}
             <input
-              ref={photoRef}
+              ref={cameraRef}
               type="file"
               accept="image/*"
               capture="environment"
+              onChange={handlePhotoChange}
+              style={{ display: "none" }}
+            />
+            {/* Gallery/device input — opens the normal file picker */}
+            <input
+              ref={galleryRef}
+              type="file"
+              accept="image/*"
               onChange={handlePhotoChange}
               style={{ display: "none" }}
             />
@@ -353,28 +372,41 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
                   alt="fabric"
                   style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 10, border: `1.5px solid ${C.border}`, display: "block" }}
                 />
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 10, display: "flex", gap: 6, alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.35)", opacity: 0 }}
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: 10, display: "flex", gap: 6, alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.4)", opacity: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.opacity = 1)}
                   onMouseLeave={e => (e.currentTarget.style.opacity = 0)}
                 >
-                  <button onClick={() => photoRef.current?.click()}
-                    style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: "#fff", color: C.text, fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
-                    گۆڕین
+                  <button onClick={() => cameraRef.current?.click()}
+                    style={{ padding: "5px 10px", borderRadius: 7, border: "none", background: "#fff", color: C.text, fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                    📷 وێنە
+                  </button>
+                  <button onClick={() => galleryRef.current?.click()}
+                    style={{ padding: "5px 10px", borderRadius: 7, border: "none", background: "#fff", color: C.text, fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                    🖼️ ئامێر
                   </button>
                   <button onClick={clearPhoto}
-                    style={{ padding: "5px 12px", borderRadius: 7, border: "none", background: C.red, color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+                    style={{ padding: "5px 10px", borderRadius: 7, border: "none", background: C.red, color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
                     سڕینەوە
                   </button>
                 </div>
               </div>
             ) : (
-              <button
-                onClick={() => photoRef.current?.click()}
-                style={{ width: "100%", height: 44, border: `1.5px dashed ${C.border}`, borderRadius: 10, background: C.strip, color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                <span style={{ fontSize: 16 }}>📷</span>
-                وێنە بگرە / هەڵبژێرە
-              </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => cameraRef.current?.click()}
+                  style={{ flex: 1, height: 44, border: `1.5px dashed ${C.border}`, borderRadius: 10, background: C.strip, color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>📷</span>
+                  وێنە بگرە
+                </button>
+                <button
+                  onClick={() => galleryRef.current?.click()}
+                  style={{ flex: 1, height: 44, border: `1.5px dashed ${C.border}`, borderRadius: 10, background: C.strip, color: C.muted, fontSize: 13, cursor: "pointer", fontFamily: "Segoe UI,Tahoma,sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <span style={{ fontSize: 16 }}>🖼️</span>
+                  لە ئامێر
+                </button>
+              </div>
             )}
+            {photoErr && <div style={{ color: C.red, fontSize: 12, marginTop: 6, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{photoErr}</div>}
           </div>
         </div>
 

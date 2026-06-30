@@ -159,9 +159,12 @@ export async function uploadFabricPhoto(file, orderId, branchId) {
   const { error } = await supabase.storage
     .from("fabric-photos")
     .upload(path, file, { upsert: true, contentType: file.type });
-  if (error) { console.error("uploadFabricPhoto:", error.message); return null; }
+  if (error) {
+    console.error("uploadFabricPhoto:", error.message);
+    return { url: null, error: error.message };
+  }
   const { data } = supabase.storage.from("fabric-photos").getPublicUrl(path);
-  return data.publicUrl;
+  return { url: data.publicUrl, error: null };
 }
 
 // ── expenses ──────────────────────────────────────────────────────────
