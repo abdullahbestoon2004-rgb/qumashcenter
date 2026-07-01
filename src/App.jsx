@@ -282,6 +282,19 @@ export default function App({ branchId, branchName, onLogout }) {
             setOrders(prev => [o, ...prev]);
             db.removeFromBin(id);
             db.upsertOrder(o, branchId);
+            // Ensure the client profile is still in Supabase (re-create if it was lost)
+            setProfiles(prev => {
+              const ph = normPhone(o.phone);
+              const nm = o.name.trim().toLowerCase();
+              const existing = prev.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm);
+              if (existing) {
+                db.upsertProfile(existing, branchId);
+                return prev;
+              }
+              const newP = { id: uuid(), name: o.name, phone: ph, measurements: { ...o.measurements }, notes: "", createdAt: todayISO() };
+              db.upsertProfile(newP, branchId);
+              return [newP, ...prev];
+            });
           }}
           onPermanentDelete={id => {
             setBin(prev => prev.filter(o => o.id !== id));

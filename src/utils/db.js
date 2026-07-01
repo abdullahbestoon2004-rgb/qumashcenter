@@ -65,6 +65,7 @@ function profileToDb(profile, branchId) {
     name:         profile.name,
     phone:        profile.phone        ?? "",
     measurements: profile.measurements ?? {},
+    notes:        profile.notes        ?? "",
   };
 }
 
