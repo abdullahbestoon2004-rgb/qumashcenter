@@ -12,8 +12,9 @@ import noteIcon from "../../assets/images/note.png";
 
 function buildNotifyUrl(order) {
   const cur = order.currency === "USD" ? "$" : "د.ع";
-  const r   = remAmt(order.totalPrice, order.paidAmount);
+  const r = remAmt(order.totalPrice, order.paidAmount);
   const lines = [
+    `قوماش سەنتەر`,
     `سڵاو ${order.name}، `,
     `داواکارییەکەت ئامادەیە!`,
     ` کۆد: ${order.code}`,
@@ -27,15 +28,16 @@ function buildNotifyUrl(order) {
 
 export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
   const days = daysLeft(order.deliveryDate);
-  const dc   = deadlineColor(days);
-  const ps   = payStatus(order.totalPrice, order.paidAmount);
-  const r    = remAmt(order.totalPrice, order.paidAmount);
-  const s    = STATUS_MAP[order.status] || STATUS[0];
-  const cur  = order.currency === "USD" ? "$" : "د.ع";
+  const dc = deadlineColor(days);
+  const ps = payStatus(order.totalPrice, order.paidAmount);
+  const r = remAmt(order.totalPrice, order.paidAmount);
+  const s = STATUS_MAP[order.status] || STATUS[0];
+  const cur = order.currency === "USD" ? "$" : "د.ع";
 
   return (
     <div
-      style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: "18px 20px 16px", direction: "rtl", boxShadow: "0 2px 8px rgba(160,120,60,.08)", transition: "box-shadow .18s" }}
+      onClick={() => onEdit(order)}
+      style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 14, padding: "18px 20px 16px", direction: "rtl", boxShadow: "0 2px 8px rgba(160,120,60,.08)", transition: "box-shadow .18s", cursor: "pointer" }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 6px 22px rgba(160,120,60,.18)")}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(160,120,60,.08)")}
     >
@@ -46,10 +48,10 @@ export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, justifyContent: "flex-end" }}>
         <span style={{ fontSize: 14, color: C.muted, direction: "ltr" }}>{order.phone}</span>
-        <a href={`tel:${order.phone}`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+        <a href={`tel:${order.phone}`} onClick={e => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
           <img src={phoneIcon} alt="phone" style={{ width: 18, height: 18, objectFit: "contain" }} />
         </a>
-        <a href={`https://wa.me/${toWAPhone(order.phone)}`} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
+        <a href={`https://wa.me/${toWAPhone(order.phone)}`} onClick={e => e.stopPropagation()} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
           <img src={whatsappIcon} alt="whatsapp" style={{ width: 18, height: 18, objectFit: "contain" }} />
         </a>
       </div>
@@ -67,7 +69,7 @@ export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
       </div>
 
       {order.status === "ready" && order.phone && (
-        <a href={buildNotifyUrl(order)} target="_blank" rel="noreferrer"
+        <a href={buildNotifyUrl(order)} onClick={e => e.stopPropagation()} target="_blank" rel="noreferrer"
           style={{ display: "flex", alignItems: "center", gap: 8, background: "#e8f8ef", border: "1.5px solid #82e0aa", borderRadius: 9, padding: "8px 14px", marginBottom: 10, textDecoration: "none", cursor: "pointer" }}>
           <img src={whatsappIcon} alt="whatsapp" style={{ width: 18, height: 18, objectFit: "contain" }} />
           <span style={{ fontSize: 14, fontWeight: 700, color: "#1a7a40", fontFamily: "Segoe UI,Tahoma,sans-serif" }}>ئاگادارکردنەوەی کڕیار</span>
@@ -102,7 +104,7 @@ export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
             src={order.fabricPhoto}
             alt="fabric"
             style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 10, border: `1.5px solid ${C.border}`, cursor: "pointer" }}
-            onClick={() => window.open(order.fabricPhoto, "_blank")}
+            onClick={(e) => { e.stopPropagation(); window.open(order.fabricPhoto, "_blank"); }}
           />
         </div>
       )}
@@ -133,9 +135,9 @@ export default function OrderCard({ order, onEdit, onDelete, onAddPayment }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, flexWrap: "wrap", gap: 6 }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <Btn onClick={() => onEdit(order)} color={C.header} small>دەستکاری</Btn>
-          {r > 0 && <Btn onClick={() => onAddPayment(order)} color={C.green} small>+ پارەدان</Btn>}
-          <Btn onClick={() => onDelete(order.id)} color={C.red} small>سڕینەوە</Btn>
+          <Btn onClick={(e) => { e.stopPropagation(); onEdit(order); }} color={C.header} small>دەستکاری</Btn>
+          {r > 0 && <Btn onClick={(e) => { e.stopPropagation(); onAddPayment(order); }} color={C.green} small>+ پارەدان</Btn>}
+          <Btn onClick={(e) => { e.stopPropagation(); onDelete(order.id); }} color={C.red} small>سڕینەوە</Btn>
         </div>
         <div style={{ background: s.bg, color: s.color, border: `1.5px solid ${s.border}`, borderRadius: 20, padding: "5px 16px", fontSize: 13, fontWeight: 700, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
           {s.label}

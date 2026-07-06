@@ -38,6 +38,7 @@ export default function App({ branchId, branchName, onLogout }) {
   const [profiles,     setProfiles]     = useState(() => ls.load(K("profiles"), []));
   const [bin,          setBin]          = useState(() => ls.load(K("bin"),      []));
   const [expenses,     setExpenses]     = useState(() => ls.load(K("expenses"), []));
+  const [manualDebts,  setManualDebts]  = useState(() => ls.load(K("manual_debts"), []));
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState("orders");
   const [search,       setSearch]       = useState("");
@@ -56,11 +57,13 @@ export default function App({ branchId, branchName, onLogout }) {
       db.loadProfiles(branchId),
       db.loadBin(branchId),
       db.loadExpenses(branchId),
-    ]).then(([o, p, b, e]) => {
+      db.loadManualDebts(branchId),
+    ]).then(([o, p, b, e, md]) => {
       if (o !== null) { setOrders(o);   ls.save(K("orders"),   o); }
       if (p !== null) { setProfiles(p); ls.save(K("profiles"), p); }
       if (b !== null) { setBin(b);      ls.save(K("bin"),      b); }
       if (e !== null) { setExpenses(e); ls.save(K("expenses"), e); }
+      if (md !== null) { setManualDebts(md); ls.save(K("manual_debts"), md); }
       setLoading(false);
     });
   }, [branchId]);
@@ -70,6 +73,20 @@ export default function App({ branchId, branchName, onLogout }) {
   useEffect(() => { ls.save(K("profiles"), profiles); }, [profiles]);
   useEffect(() => { ls.save(K("bin"),      bin);      }, [bin]);
   useEffect(() => { ls.save(K("expenses"), expenses); }, [expenses]);
+  useEffect(() => { ls.save(K("manual_debts"), manualDebts); }, [manualDebts]);
+
+  function handleSaveManualDebt(debt) {
+    setManualDebts(prev => {
+      const exists = prev.find(d => d.id === debt.id);
+      return exists ? prev.map(d => d.id === debt.id ? debt : d) : [debt, ...prev];
+    });
+    db.upsertManualDebt(debt, branchId);
+  }
+
+  function handleDeleteManualDebt(id) {
+    setManualDebts(prev => prev.filter(d => d.id !== id));
+    db.deleteManualDebt(id);
+  }
 
   function handleSaveExpense(expense) {
     setExpenses(prev => {
@@ -259,7 +276,13 @@ export default function App({ branchId, branchName, onLogout }) {
         </main>
       </>}
 
-      {tab === "finance" && <FinanceTab orders={orders} expenses={expenses} onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense} />}
+      {tab === "finance" && (
+        <FinanceTab
+          orders={orders} expenses={expenses} manualDebts={manualDebts}
+          onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense}
+          onSaveManualDebt={handleSaveManualDebt} onDeleteManualDebt={handleDeleteManualDebt}
+        />
+      )}
 
       {tab === "profiles" && (
         <ProfilesTab

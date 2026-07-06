@@ -214,3 +214,50 @@ export async function deleteExpense(id) {
   const { error } = await supabase.from("expenses").delete().eq("id", id);
   if (error) console.error("deleteExpense:", error.message);
 }
+
+// ── manual debts ──────────────────────────────────────────────────────
+
+function manualDebtFromDb(row) {
+  return {
+    id:        row.id,
+    name:      row.name   ?? "",
+    phone:     row.phone  ?? "",
+    amount:    row.amount ?? "0",
+    date:      row.date   ?? "",
+    notes:     row.notes  ?? "",
+  };
+}
+
+function manualDebtToDb(debt, branchId) {
+  return {
+    id:        debt.id,
+    branch_id: branchId,
+    name:      debt.name   ?? "",
+    phone:     debt.phone  ?? "",
+    amount:    debt.amount ?? "0",
+    date:      debt.date   ?? "",
+    notes:     debt.notes  ?? "",
+  };
+}
+
+export async function loadManualDebts(branchId) {
+  const { data, error } = await supabase
+    .from("manual_debts")
+    .select("*")
+    .eq("branch_id", branchId)
+    .order("date", { ascending: false });
+  if (error) { console.error("loadManualDebts:", error.message); return null; }
+  return data.map(manualDebtFromDb);
+}
+
+export async function upsertManualDebt(debt, branchId) {
+  const { error } = await supabase
+    .from("manual_debts")
+    .upsert(manualDebtToDb(debt, branchId), { onConflict: "id" });
+  if (error) console.error("upsertManualDebt:", error.message);
+}
+
+export async function deleteManualDebt(id) {
+  const { error } = await supabase.from("manual_debts").delete().eq("id", id);
+  if (error) console.error("deleteManualDebt:", error.message);
+}

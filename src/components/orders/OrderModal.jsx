@@ -452,7 +452,7 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
                   <label style={{ fontSize: 13, color: errors[key] ? C.red : C.muted, fontWeight: 600, fontFamily: "Segoe UI,Tahoma,sans-serif", textAlign: "center" }}>{label}</label>
                   <input
                     ref={el => { mRefs.current[idx] = el; }}
-                    type="number"
+                    type="text"
                     value={form.measurements[key]}
                     onChange={e => { sm(key, e.target.value); ce(key); }}
                     onKeyDown={e => handleMKD(e, idx)}
@@ -470,7 +470,7 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
                   <label style={{ fontSize: 16, color: errors[key] ? C.red : C.text, fontWeight: 600, whiteSpace: "nowrap", fontFamily: "Segoe UI,Tahoma,sans-serif", flex: "0 0 96px", textAlign: "right" }}>{label}</label>
                   <input
                     ref={el => { mRefs.current[idx] = el; }}
-                    type="number"
+                    type="text"
                     value={form.measurements[key]}
                     onChange={e => { sm(key, e.target.value); ce(key); }}
                     onKeyDown={e => handleMKD(e, idx)}

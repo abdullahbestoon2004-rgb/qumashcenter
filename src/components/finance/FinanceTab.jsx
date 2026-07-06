@@ -25,6 +25,7 @@ const QUICK = [
 
 const CATEGORIES = ["کرێی دووکان", "مووچە", "موادی خامی", "خزمەتگوزاری", "ناردن", "تر"];
 const EMPTY_EXPENSE = { description: "", amount: "", currency: "IQD", category: "تر", date: todayISO() };
+const EMPTY_MANUAL_DEBT = { name: "", phone: "", amount: "", date: todayISO(), notes: "" };
 
 function buildDebtWAUrl(client) {
   const lines = client.orders
@@ -32,6 +33,12 @@ function buildDebtWAUrl(client) {
     .join("\n");
   const text = `سڵاو ${client.name}،\nتکایە پارەی ماوەکەت تەواو بکە:\n${lines}\nکۆ: ${fmt(client.total)} د.ع`;
   return `https://wa.me/${toWAPhone(client.phone)}?text=${encodeURIComponent(text)}`;
+}
+
+function buildManualDebtWAUrl(debt) {
+  const noteLine = debt.notes ? `  • تێبینی: ${debt.notes}` : `  • قەرز: ${fmt(debt.amount)} د.ع`;
+  const text = `سڵاو ${debt.name}،\nتکایە پارەی ماوەکەت تەواو بکە:\n${noteLine}\nکۆ: ${fmt(debt.amount)} د.ع`;
+  return `https://wa.me/${toWAPhone(debt.phone)}?text=${encodeURIComponent(text)}`;
 }
 
 // ── stat card ─────────────────────────────────────────────────────────
@@ -48,7 +55,7 @@ function StatCard({ label, value, unit, color, sub, isMobile }) {
 }
 
 // ── main ──────────────────────────────────────────────────────────────
-export default function FinanceTab({ orders, expenses, onSaveExpense, onDeleteExpense }) {
+export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveExpense, onDeleteExpense, onSaveManualDebt, onDeleteManualDebt }) {
   const isMobile = useIsMobile();
 
   const [fromDate,    setFromDate]    = useState("");
@@ -57,6 +64,9 @@ export default function FinanceTab({ orders, expenses, onSaveExpense, onDeleteEx
   const [showExpForm, setShowExpForm] = useState(false);
   const [expForm,     setExpForm]     = useState(EMPTY_EXPENSE);
   const [expErr,      setExpErr]      = useState("");
+  const [showDebtForm, setShowDebtForm] = useState(false);
+  const [debtForm,    setDebtForm]    = useState(EMPTY_MANUAL_DEBT);
+  const [debtErr,     setDebtErr]     = useState("");
 
   function applyQuick(q) {
     setQuick(q.key);
@@ -73,9 +83,11 @@ export default function FinanceTab({ orders, expenses, onSaveExpense, onDeleteEx
 
   const inRange    = useMemo(() => orders.filter(o => inDateRange(o.orderDate || "")),  [orders, fromDate, toDate]);
   const expInRange = useMemo(() => expenses.filter(e => inDateRange(e.date || "")),     [expenses, fromDate, toDate]);
+  const mdInRange  = useMemo(() => manualDebts.filter(d => inDateRange(d.date || "")),  [manualDebts, fromDate, toDate]);
 
   const grossRevenue  = useMemo(() => inRange.reduce((s, o) => s + toNum(o.paidAmount), 0), [inRange]);
-  const outstanding   = useMemo(() => inRange.reduce((s, o) => s + remAmt(o.totalPrice, o.paidAmount), 0), [inRange]);
+  const manualDebtTotal = useMemo(() => mdInRange.reduce((s, d) => s + toNum(d.amount), 0), [mdInRange]);
+  const outstanding   = useMemo(() => inRange.reduce((s, o) => s + remAmt(o.totalPrice, o.paidAmount), 0) + manualDebtTotal, [inRange, manualDebtTotal]);
   const totalValue    = useMemo(() => inRange.reduce((s, o) => s + toNum(o.totalPrice), 0),  [inRange]);
   const totalExpenses = useMemo(() => expInRange.reduce((s, e) => s + toNum(e.amount), 0),   [expInRange]);
   const netProfit     = grossRevenue - totalExpenses;
@@ -116,7 +128,18 @@ export default function FinanceTab({ orders, expenses, onSaveExpense, onDeleteEx
     setExpErr("");
   }
 
+  function handleSaveManualDebtForm() {
+    if (!debtForm.name.trim()) { setDebtErr("ناو داواکراوە"); return; }
+    if (!debtForm.amount || toNum(debtForm.amount) <= 0) { setDebtErr("بڕی پارە داواکراوە"); return; }
+    if (!debtForm.date) { setDebtErr("بەروار داواکراوە"); return; }
+    onSaveManualDebt({ ...debtForm, id: uuid() });
+    setDebtForm(EMPTY_MANUAL_DEBT);
+    setShowDebtForm(false);
+    setDebtErr("");
+  }
+
   const inp = (k, v) => setExpForm(f => ({ ...f, [k]: v }));
+  const inpDebt = (k, v) => setDebtForm(f => ({ ...f, [k]: v }));
 
   return (
     <div style={{ padding: isMobile ? "14px 10px" : "24px 20px", maxWidth: 1200, margin: "0 auto", direction: "rtl" }}>
@@ -260,6 +283,108 @@ export default function FinanceTab({ orders, expenses, onSaveExpense, onDeleteEx
                 })}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Manual Debts section ── */}
+      <div style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: showDebtForm ? `1px solid ${C.border}` : "none" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>قەرزەکانم (دەرەکی)</div>
+            {mdInRange.length > 0 && <div style={{ fontSize: 13, color: C.red, fontWeight: 600, marginTop: 2, fontFamily: "'Courier New',monospace" }}>کۆ: {fmt(manualDebtTotal)} د.ع</div>}
+          </div>
+          <button onClick={() => { setShowDebtForm(v => !v); setDebtErr(""); }} style={{
+            padding: "8px 18px", borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            border: `1.5px solid ${showDebtForm ? C.muted : C.accent}`,
+            background: showDebtForm ? "transparent" : C.accent,
+            color: showDebtForm ? C.muted : "#fff",
+            fontFamily: "Segoe UI,Tahoma,sans-serif", transition: "all .15s",
+          }}>
+            {showDebtForm ? "هەڵوەشاندن" : "+ زیادکردنی قەرز"}
+          </button>
+        </div>
+
+        {showDebtForm && (
+          <div style={{ padding: "16px 18px", background: C.strip, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>ناو</div>
+                <input value={debtForm.name} onChange={e => inpDebt("name", e.target.value)} placeholder="ناوی قەرزدار..."
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "Segoe UI,Tahoma,sans-serif" }}
+                  onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>مۆبایل</div>
+                <input value={debtForm.phone} onChange={e => inpDebt("phone", e.target.value)} placeholder="0750..." dir="ltr"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "Segoe UI,Tahoma,sans-serif", textAlign: "left" }}
+                  onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>بڕی پارە</div>
+                <input type="number" value={debtForm.amount} onChange={e => inpDebt("amount", e.target.value)} placeholder="50000"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "'Courier New',monospace" }}
+                  onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>بەروار</div>
+                <input type="date" value={debtForm.date} onChange={e => inpDebt("date", e.target.value)}
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box" }} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>تێبینی (ئارەزوومەندانە)</div>
+              <input value={debtForm.notes} onChange={e => inpDebt("notes", e.target.value)} placeholder="هەر زانیارییەکی تر..."
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "Segoe UI,Tahoma,sans-serif" }}
+                onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+            </div>
+            {debtErr && <div style={{ color: C.red, fontSize: 13, marginBottom: 8, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{debtErr}</div>}
+            <button onClick={handleSaveManualDebtForm} style={{ padding: "9px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", background: C.header, color: C.headerText, border: "none", borderRadius: 9, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+              پاشەکەوتکردن
+            </button>
+          </div>
+        )}
+
+        {mdInRange.length === 0 ? (
+          <div style={{ padding: "30px 18px", textAlign: "center", color: C.muted, fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+            {fromDate || toDate ? "هیچ قەرزێکی دەرەکی لەم ماوەیەدا نەدۆزرایەوە" : "هیچ قەرزێکی دەرەکی تۆمار نەکراوە"}
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif", direction: "rtl" }}>
+              <thead>
+                <tr style={{ background: C.strip }}>
+                  {["ناو", "مۆبایل", "بڕی پارە", "تێبینی", "بەروار", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "10px 14px", color: C.muted, fontWeight: 600, textAlign: "right", whiteSpace: "nowrap", fontSize: 13 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {mdInRange.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map((d, i) => (
+                  <tr key={d.id} style={{ background: i % 2 === 0 ? C.card : C.strip, borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: "10px 14px", fontWeight: 600, color: C.text }}>{d.name}</td>
+                    <td style={{ padding: "10px 14px", color: C.muted, direction: "ltr", textAlign: "right" }}>{d.phone || "—"}</td>
+                    <td style={{ padding: "10px 14px", color: C.red, fontWeight: 700, fontFamily: "'Courier New',monospace", whiteSpace: "nowrap" }}>
+                      {fmt(d.amount)} <span style={{ fontSize: 11 }}>د.ع</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", color: C.muted, fontSize: 13 }}>{d.notes || "—"}</td>
+                    <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap", fontSize: 13 }}>{d.date || "—"}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        {d.phone && (
+                          <a href={buildManualDebtWAUrl(d)} target="_blank" rel="noreferrer"
+                            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, background: "#e8f8ef", border: "1.5px solid #82e0aa", textDecoration: "none" }}
+                            title="ئاگادارکردنەوە بە واتساپ">
+                            <img src={whatsappIcon} alt="whatsapp" style={{ width: 14, height: 14, objectFit: "contain" }} />
+                          </a>
+                        )}
+                        <button onClick={() => onDeleteManualDebt(d.id)} style={{ background: "none", border: "none", color: C.red, fontSize: 16, cursor: "pointer", padding: "2px 6px", borderRadius: 6 }} title="سڕینەوە">✕</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
