@@ -289,13 +289,29 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
             <div style={{ flex: 1, minWidth: 100 }} id="mf-totalPrice">
               <Lbl>نرخی گشتی ({form.currency})</Lbl>
               <Inp value={form.totalPrice} hasErr={!!errors.totalPrice} placeholder="35000"
-                onChange={e => { sf("totalPrice", e.target.value); ce("totalPrice"); }} />
+                onChange={e => {
+                  let val = e.target.value;
+                  if (/^0[0-9]+/.test(val)) {
+                    val = val.replace(/^0+/, "");
+                    if (val === "") val = "0";
+                  }
+                  sf("totalPrice", val);
+                  ce("totalPrice");
+                }} />
               <FieldErr msg={errors.totalPrice} />
             </div>
             <div style={{ flex: 1, minWidth: 100 }} id="mf-paidAmount">
               <Lbl>دراوە ({form.currency})</Lbl>
               <Inp value={form.paidAmount} hasErr={!!errors.paidAmount} placeholder="0"
-                onChange={e => { sf("paidAmount", e.target.value); ce("paidAmount"); }} />
+                onChange={e => {
+                  let val = e.target.value;
+                  if (/^0[0-9]+/.test(val)) {
+                    val = val.replace(/^0+/, "");
+                    if (val === "") val = "0";
+                  }
+                  sf("paidAmount", val);
+                  ce("paidAmount");
+                }} />
               <FieldErr msg={errors.paidAmount} />
             </div>
             <div style={{ flex: "0 0 auto" }}>

@@ -49,7 +49,15 @@ export default function PaymentModal({ order, onClose, onSave }) {
         <div style={{ marginBottom: 12 }}>
           <Lbl>بڕی پارەدان ({cur})</Lbl>
           <Inp value={amount} hasErr={!!err} placeholder="10,000" autoFocus
-            onChange={e => { setAmount(e.target.value); setErr(""); }} />
+            onChange={e => {
+              let val = e.target.value;
+              if (/^0[0-9]+/.test(val)) {
+                val = val.replace(/^0+/, "");
+                if (val === "") val = "0";
+              }
+              setAmount(val);
+              setErr("");
+            }} />
           {err && <div style={{ color: C.red, fontSize: 13, marginTop: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{err}</div>}
         </div>
 
