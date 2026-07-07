@@ -29,6 +29,31 @@ import scissorsIcon from "./assets/images/scissors.png";
 import logoImg      from "./assets/images/qumashcenterlogo.png";
 import financeIcon  from "./assets/images/financial.png";
 
+async function sendWebpushrNotification(order) {
+  const key = import.meta.env.VITE_WEBPUSHR_KEY;
+  const token = import.meta.env.VITE_WEBPUSHR_AUTH_TOKEN;
+  if (!key || !token) return;
+
+  try {
+    await fetch("https://api.webpushr.com/v1/notification/send/all", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "webpushrKey": key,
+        "webpushrAuthToken": token
+      },
+      body: JSON.stringify({
+        title: "داواکاری نوێ تۆمارکرا",
+        message: `داواکارییەکی نوێ تۆمارکرا بۆ (${order.name}) بە کۆدی (${order.code})`,
+        target_url: window.location.origin,
+        auto_hide: 0
+      })
+    });
+  } catch (err) {
+    console.error("Webpushr push notification error:", err);
+  }
+}
+
 export default function App({ branchId, branchName, onLogout }) {
   const isMobile = useIsMobile();
   const K = k => `qumash_${branchId}_${k}`;
@@ -53,6 +78,30 @@ export default function App({ branchId, branchName, onLogout }) {
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
+    }
+  }, []);
+
+  // Load Webpushr SDK on mount
+  useEffect(() => {
+    const trackingKey = import.meta.env.VITE_WEBPUSHR_TRACKING_KEY;
+    if (!trackingKey) return;
+
+    window.webpushr = window.webpushr || function() {
+      (window.webpushr.q = window.webpushr.q || []).push(arguments);
+    };
+
+    if (!document.getElementById("webpushr-jssdk")) {
+      const js = document.createElement("script");
+      js.id = "webpushr-jssdk";
+      js.src = "https://cdn.webpushr.com/app.js";
+      const fjs = document.getElementsByTagName("script")[0];
+      if (fjs && fjs.parentNode) {
+        fjs.parentNode.insertBefore(js, fjs);
+      } else {
+        document.head.appendChild(js);
+      }
+      
+      window.webpushr('setup', { 'key': trackingKey });
     }
   }, []);
 
@@ -208,6 +257,11 @@ export default function App({ branchId, branchName, onLogout }) {
       } catch (err) {
         console.error("Failed to show notification:", err);
       }
+    }
+
+    // Send background push notification if it's a new order
+    if (isNew) {
+      sendWebpushrNotification(order);
     }
   }
 
