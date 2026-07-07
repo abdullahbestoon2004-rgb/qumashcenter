@@ -49,6 +49,13 @@ export default function App({ branchId, branchName, onLogout }) {
   const [showBin,      setShowBin]      = useState(false);
   const [profileModal, setProfileModal] = useState(null);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Load from Supabase on mount / branch change
   useEffect(() => {
     setLoading(true);
@@ -108,6 +115,8 @@ export default function App({ branchId, branchName, onLogout }) {
   }
 
   function handleSaveOrder(order) {
+    const isNew = !orders.some(o => o.id === order.id);
+
     setOrders(prev => {
       const exists = prev.find(o => o.id === order.id);
       return exists ? prev.map(o => o.id === order.id ? order : o) : [order, ...prev];
@@ -131,6 +140,18 @@ export default function App({ branchId, branchName, onLogout }) {
       return [newP, ...prev];
     });
     setModal(null);
+
+    // Send local device notification if it's a new order
+    if (isNew && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("داواکاری نوێ", {
+          body: `داواکارییەک بە ناوی (${order.name}) تۆمارکرا بە کۆدی (${order.code})`,
+          icon: "/favicon.ico"
+        });
+      } catch (err) {
+        console.error("Failed to show notification:", err);
+      }
+    }
   }
 
   function handleSaveProfile(profile) {

@@ -24,11 +24,19 @@ function nextOrderCode(orders) {
 
 export default function OrderModal({ order, allOrders, profiles, branchId, onClose, onSave, onAddNewProfile }) {
   const isMobile = useIsMobile();
-  const isEdit = !!order;
-  const [form, setForm] = useState(() =>
-    order ? { ...order, measurements: { ...order.measurements } }
-          : { ...EMPTY_FORM, measurements: { ...EMPTY_M }, code: nextOrderCode(allOrders), id: uuid() }
-  );
+  const isEdit = !!(order && order.id);
+  const [form, setForm] = useState(() => {
+    if (order && order.id) {
+      return { ...order, measurements: { ...order.measurements } };
+    }
+    const base = order || EMPTY_FORM;
+    return {
+      ...base,
+      measurements: { ...(order?.measurements || EMPTY_M) },
+      code: base.code || nextOrderCode(allOrders),
+      id: base.id || uuid()
+    };
+  });
   const [errors,        setErrors]       = useState({});
   const [showNameDrop,  setShowNameDrop] = useState(false);
   const [newClientAdded,setNewClientAdded] = useState(false);

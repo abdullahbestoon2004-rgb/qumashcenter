@@ -6,6 +6,7 @@ export const MEASUREMENTS = [
   { key: "qol",      label: "قۆڵ"      },
   { key: "machak",   label: "بن دەستە" },
   { key: "damaqach", label: "دەلینگ"   },
+  { key: "yaxe",     label: "یەخە"     },
 ];
 
 export const EMPTY_M = Object.fromEntries(MEASUREMENTS.map(m => [m.key, ""]));
