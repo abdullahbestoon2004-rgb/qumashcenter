@@ -75,6 +75,63 @@ export default function App({ branchId, branchName, onLogout }) {
     });
   }, [branchId]);
 
+  // Subscribe to real-time changes on orders
+  useEffect(() => {
+    if (!branchId) return;
+
+    const channel = db.subscribeToOrders(branchId, (payload) => {
+      const { eventType, new: newOrder, old: oldOrder } = payload;
+
+      if (eventType === "INSERT") {
+        setOrders(prev => {
+          if (prev.some(o => o.id === newOrder.id)) return prev;
+
+          // Send local device notification for the incoming order
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("داواکاری نوێ", {
+                body: `داواکارییەک بە ناوی (${newOrder.name}) تۆمارکرا بە کۆدی (${newOrder.code})`,
+                icon: "/favicon.ico"
+              });
+            } catch (err) {
+              console.error("Failed to show notification:", err);
+            }
+          }
+          return [newOrder, ...prev];
+        });
+
+        // Sync customer profiles for the new order
+        setProfiles(prev => {
+          const ph = normPhone(newOrder.phone);
+          const nm = newOrder.name.trim().toLowerCase();
+          const existing = prev.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm)
+            || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === nm);
+          if (existing) {
+            const updated = { ...existing, name: newOrder.name, phone: ph, measurements: { ...newOrder.measurements } };
+            return prev.map(p => p.id === existing.id ? updated : p);
+          }
+          const newP = { id: uuid(), name: newOrder.name, phone: ph, measurements: { ...newOrder.measurements }, notes: "", createdAt: todayISO() };
+          return [newP, ...prev];
+        });
+      } else if (eventType === "UPDATE") {
+        setOrders(prev => {
+          const exists = prev.some(o => o.id === newOrder.id);
+          if (exists) {
+            return prev.map(o => o.id === newOrder.id ? newOrder : o);
+          } else {
+            return [newOrder, ...prev];
+          }
+        });
+      } else if (eventType === "DELETE") {
+        setOrders(prev => prev.filter(o => o.id !== oldOrder.id));
+      }
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [branchId]);
+
   // Keep localStorage cache in sync
   useEffect(() => { ls.save(K("orders"),   orders);   }, [orders]);
   useEffect(() => { ls.save(K("profiles"), profiles); }, [profiles]);

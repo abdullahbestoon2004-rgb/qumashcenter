@@ -261,3 +261,26 @@ export async function deleteManualDebt(id) {
   const { error } = await supabase.from("manual_debts").delete().eq("id", id);
   if (error) console.error("deleteManualDebt:", error.message);
 }
+
+export function subscribeToOrders(branchId, onEvent) {
+  return supabase
+    .channel(`orders-branch-${branchId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: `branch_id=eq.${branchId}`,
+      },
+      (payload) => {
+        const mappedPayload = {
+          eventType: payload.eventType,
+          new: payload.new && Object.keys(payload.new).length ? orderFromDb(payload.new) : null,
+          old: payload.old && Object.keys(payload.old).length ? orderFromDb(payload.old) : null,
+        };
+        onEvent(mappedPayload);
+      }
+    )
+    .subscribe();
+}
