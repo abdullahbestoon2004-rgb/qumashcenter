@@ -41,37 +41,15 @@ async function sendTelegramNotification(order) {
 
   const cur = order.currency === "USD" ? "$" : "د.ع";
   const total = toNum(order.totalPrice);
-  const paid = toNum(order.paidAmount);
-  const remaining = remAmt(order.totalPrice, order.paidAmount);
-
-  // Format measurements
-  const measurementsText = Object.entries(order.measurements || {})
-    .map(([key, val]) => {
-      const match = MEASUREMENTS.find(m => m.key === key);
-      return val ? `  ▫️ <b>${match ? match.label : key}:</b> ${val}` : null;
-    })
-    .filter(Boolean)
-    .join("\n");
 
   const message = [
     `🔔 <b>داواکاری نوێ تۆمارکرا</b>`,
     `━━━━━━━━━━━━━━━━━━`,
     `🔢 <b>کۆدی داواکاری:</b> <code>${order.code}</code>`,
     `👤 <b>کڕیار:</b> ${order.name}`,
-    `📞 <b>مۆبایل:</b> ${order.phone || "—"}`,
-    `📅 <b>بەرواری داواکاری:</b> ${order.orderDate || "—"}`,
-    `📅 <b>بەرواری وەرگرتن:</b> ${order.deliveryDate || "—"}`,
-    `━━━━━━━━━━━━━━━━━━`,
-    `👗 <b>شێواز:</b> ${order.style || "—"}`,
-    `🧵 <b>قوماش:</b> ${order.fabric || "—"}${order.fabricColor ? ` (${order.fabricColor})` : ""}`,
-    `💰 <b>نرخی گشتی:</b> ${fmt(total)} ${cur}`,
-    `💵 <b>پێشەکی (دراو):</b> ${fmt(paid)} ${cur}`,
-    `💳 <b>ماوە:</b> ${fmt(remaining)} ${cur}`,
-    `━━━━━━━━━━━━━━━━━━`,
-    measurementsText ? `📏 <b>پێوانەکان:</b>\n${measurementsText}\n` : "",
-    order.notes ? `📝 <b>تێبینی:</b> ${order.notes}` : "",
-    order.fabricPhoto ? `🖼️ <b>وێنەی قوماش:</b> <a href="${order.fabricPhoto}">بینینی وێنە</a>` : ""
-  ].filter(l => l !== undefined && l !== "").join("\n");
+    `📅 <b>بەروار:</b> ${order.orderDate || "—"}`,
+    `💰 <b>نرخ:</b> ${fmt(total)} ${cur}`
+  ].join("\n");
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
