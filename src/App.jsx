@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { C } from "./constants/theme";
 import { EMPTY_FORM } from "./constants/forms";
-import { EMPTY_M } from "./constants/measurements";
+import { EMPTY_M, MEASUREMENTS } from "./constants/measurements";
 import { uuid } from "./utils/uuid";
 import { todayISO } from "./utils/date";
 import { normPhone } from "./utils/phone";
 import { matchSearch } from "./utils/search";
 import { ls } from "./utils/storage";
 import { useIsMobile } from "./utils/responsive";
+import { toNum, fmt } from "./utils/format";
+import { remAmt } from "./utils/payment";
 import * as db from "./utils/db";
 
 import Dashboard     from "./components/orders/Dashboard";
@@ -29,28 +31,66 @@ import scissorsIcon from "./assets/images/scissors.png";
 import logoImg      from "./assets/images/qumashcenterlogo.png";
 import financeIcon  from "./assets/images/financial.png";
 
-async function sendWebpushrNotification(order) {
-  const key = import.meta.env.VITE_WEBPUSHR_KEY;
-  const token = import.meta.env.VITE_WEBPUSHR_AUTH_TOKEN;
-  if (!key || !token) return;
+async function sendTelegramNotification(order) {
+  const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+  const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+  if (!token || !chatId) {
+    console.warn("Telegram bot token or chat ID is missing.");
+    return;
+  }
+
+  const cur = order.currency === "USD" ? "$" : "د.ع";
+  const total = toNum(order.totalPrice);
+  const paid = toNum(order.paidAmount);
+  const remaining = remAmt(order.totalPrice, order.paidAmount);
+
+  // Format measurements
+  const measurementsText = Object.entries(order.measurements || {})
+    .map(([key, val]) => {
+      const match = MEASUREMENTS.find(m => m.key === key);
+      return val ? `  ▫️ <b>${match ? match.label : key}:</b> ${val}` : null;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const message = [
+    `🔔 <b>داواکاری نوێ تۆمارکرا</b>`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `🔢 <b>کۆدی داواکاری:</b> <code>${order.code}</code>`,
+    `👤 <b>کڕیار:</b> ${order.name}`,
+    `📞 <b>مۆبایل:</b> ${order.phone || "—"}`,
+    `📅 <b>بەرواری داواکاری:</b> ${order.orderDate || "—"}`,
+    `📅 <b>بەرواری وەرگرتن:</b> ${order.deliveryDate || "—"}`,
+    `━━━━━━━━━━━━━━━━━━`,
+    `👗 <b>شێواز:</b> ${order.style || "—"}`,
+    `🧵 <b>قوماش:</b> ${order.fabric || "—"}${order.fabricColor ? ` (${order.fabricColor})` : ""}`,
+    `💰 <b>نرخی گشتی:</b> ${fmt(total)} ${cur}`,
+    `💵 <b>پێشەکی (دراو):</b> ${fmt(paid)} ${cur}`,
+    `💳 <b>ماوە:</b> ${fmt(remaining)} ${cur}`,
+    `━━━━━━━━━━━━━━━━━━`,
+    measurementsText ? `📏 <b>پێوانەکان:</b>\n${measurementsText}\n` : "",
+    order.notes ? `📝 <b>تێبینی:</b> ${order.notes}` : "",
+    order.fabricPhoto ? `🖼️ <b>وێنەی قوماش:</b> <a href="${order.fabricPhoto}">بینینی وێنە</a>` : ""
+  ].filter(l => l !== undefined && l !== "").join("\n");
 
   try {
-    await fetch("https://api.webpushr.com/v1/notification/send/all", {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "webpushrKey": key,
-        "webpushrAuthToken": token
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        title: "داواکاری نوێ تۆمارکرا",
-        message: `داواکارییەکی نوێ تۆمارکرا بۆ (${order.name}) بە کۆدی (${order.code})`,
-        target_url: window.location.origin,
-        auto_hide: 0
+        chat_id: chatId,
+        text: message,
+        parse_mode: "HTML"
       })
     });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Failed to send Telegram notification:", errText);
+    }
   } catch (err) {
-    console.error("Webpushr push notification error:", err);
+    console.error("Telegram notification error:", err);
   }
 }
 
@@ -73,37 +113,6 @@ export default function App({ branchId, branchName, onLogout }) {
   const [confirmDel,   setConfirmDel]   = useState(null);
   const [showBin,      setShowBin]      = useState(false);
   const [profileModal, setProfileModal] = useState(null);
-
-  // Request notification permission on mount
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // Load Webpushr SDK on mount
-  useEffect(() => {
-    const trackingKey = import.meta.env.VITE_WEBPUSHR_TRACKING_KEY;
-    if (!trackingKey) return;
-
-    window.webpushr = window.webpushr || function() {
-      (window.webpushr.q = window.webpushr.q || []).push(arguments);
-    };
-
-    if (!document.getElementById("webpushr-jssdk")) {
-      const js = document.createElement("script");
-      js.id = "webpushr-jssdk";
-      js.src = "https://cdn.webpushr.com/app.js";
-      const fjs = document.getElementsByTagName("script")[0];
-      if (fjs && fjs.parentNode) {
-        fjs.parentNode.insertBefore(js, fjs);
-      } else {
-        document.head.appendChild(js);
-      }
-      
-      window.webpushr('setup', { 'key': trackingKey });
-    }
-  }, []);
 
   // Load from Supabase on mount / branch change
   useEffect(() => {
@@ -134,18 +143,6 @@ export default function App({ branchId, branchName, onLogout }) {
       if (eventType === "INSERT") {
         setOrders(prev => {
           if (prev.some(o => o.id === newOrder.id)) return prev;
-
-          // Send local device notification for the incoming order
-          if ("Notification" in window && Notification.permission === "granted") {
-            try {
-              new Notification("داواکاری نوێ", {
-                body: `داواکارییەک بە ناوی (${newOrder.name}) تۆمارکرا بە کۆدی (${newOrder.code})`,
-                icon: "/favicon.ico"
-              });
-            } catch (err) {
-              console.error("Failed to show notification:", err);
-            }
-          }
           return [newOrder, ...prev];
         });
 
@@ -247,21 +244,9 @@ export default function App({ branchId, branchName, onLogout }) {
     });
     setModal(null);
 
-    // Send local device notification if it's a new order
-    if (isNew && "Notification" in window && Notification.permission === "granted") {
-      try {
-        new Notification("داواکاری نوێ", {
-          body: `داواکارییەک بە ناوی (${order.name}) تۆمارکرا بە کۆدی (${order.code})`,
-          icon: "/favicon.ico"
-        });
-      } catch (err) {
-        console.error("Failed to show notification:", err);
-      }
-    }
-
-    // Send background push notification if it's a new order
+    // Send Telegram notification if it's a new order
     if (isNew) {
-      sendWebpushrNotification(order);
+      sendTelegramNotification(order);
     }
   }
 
