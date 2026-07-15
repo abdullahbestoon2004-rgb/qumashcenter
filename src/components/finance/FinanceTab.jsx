@@ -55,7 +55,18 @@ function StatCard({ label, value, unit, color, sub, isMobile }) {
 }
 
 // ── main ──────────────────────────────────────────────────────────────
-export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveExpense, onDeleteExpense, onSaveManualDebt, onDeleteManualDebt }) {
+export default function FinanceTab({
+  orders,
+  expenses,
+  manualDebts = [],
+  dailySales = [],
+  onSaveExpense,
+  onDeleteExpense,
+  onSaveManualDebt,
+  onDeleteManualDebt,
+  onSaveDailySale,
+  onDeleteDailySale,
+}) {
   const isMobile = useIsMobile();
 
   const [fromDate,    setFromDate]    = useState("");
@@ -67,6 +78,10 @@ export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveE
   const [showDebtForm, setShowDebtForm] = useState(false);
   const [debtForm,    setDebtForm]    = useState(EMPTY_MANUAL_DEBT);
   const [debtErr,     setDebtErr]     = useState("");
+
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [saleForm,     setSaleForm]     = useState({ description: "", amount: "", date: todayISO() });
+  const [saleErr,      setSaleErr]      = useState("");
 
   function applyQuick(q) {
     setQuick(q.key);
@@ -84,14 +99,18 @@ export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveE
   const inRange    = useMemo(() => orders.filter(o => inDateRange(o.orderDate || "")),  [orders, fromDate, toDate]);
   const expInRange = useMemo(() => expenses.filter(e => inDateRange(e.date || "")),     [expenses, fromDate, toDate]);
   const mdInRange  = useMemo(() => manualDebts.filter(d => inDateRange(d.date || "")),  [manualDebts, fromDate, toDate]);
+  const dsInRange  = useMemo(() => dailySales.filter(s => inDateRange(s.date || "")),  [dailySales, fromDate, toDate]);
 
-  const grossRevenue  = useMemo(() => inRange.reduce((s, o) => s + toNum(o.paidAmount), 0), [inRange]);
+  const dailySalesTotal = useMemo(() => dsInRange.reduce((s, d) => s + toNum(d.amount), 0), [dsInRange]);
+  const grossRevenue  = useMemo(() => inRange.reduce((s, o) => s + toNum(o.paidAmount), 0) + dailySalesTotal, [inRange, dailySalesTotal]);
   const manualDebtTotal = useMemo(() => mdInRange.reduce((s, d) => s + toNum(d.amount), 0), [mdInRange]);
   const outstanding   = useMemo(() => inRange.reduce((s, o) => s + remAmt(o.totalPrice, o.paidAmount), 0) + manualDebtTotal, [inRange, manualDebtTotal]);
   const totalValue    = useMemo(() => inRange.reduce((s, o) => s + toNum(o.totalPrice), 0),  [inRange]);
   const totalExpenses = useMemo(() => expInRange.reduce((s, e) => s + toNum(e.amount), 0),   [expInRange]);
   const netProfit     = grossRevenue - totalExpenses;
-  const collectRate   = totalValue > 0 ? Math.round((grossRevenue / totalValue) * 100) : 0;
+
+  const orderPaidTotal = useMemo(() => inRange.reduce((s, o) => s + toNum(o.paidAmount), 0), [inRange]);
+  const collectRate   = totalValue > 0 ? Math.round((orderPaidTotal / totalValue) * 100) : 0;
   const rateColor     = collectRate >= 80 ? C.green : collectRate >= 50 ? C.orange : C.red;
 
   // Group unpaid orders by client
@@ -138,8 +157,19 @@ export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveE
     setDebtErr("");
   }
 
+  function handleSaveSaleForm() {
+    if (!saleForm.description.trim())              { setSaleErr("وەسف داواکراوە"); return; }
+    if (!saleForm.amount || toNum(saleForm.amount) <= 0) { setSaleErr("بڕی پارە داواکراوە"); return; }
+    if (!saleForm.date)                            { setSaleErr("بەروار داواکراوە"); return; }
+    onSaveDailySale({ ...saleForm, id: uuid() });
+    setSaleForm({ description: "", amount: "", date: todayISO() });
+    setShowSaleForm(false);
+    setSaleErr("");
+  }
+
   const inp = (k, v) => setExpForm(f => ({ ...f, [k]: v }));
   const inpDebt = (k, v) => setDebtForm(f => ({ ...f, [k]: v }));
+  const inpSale = (k, v) => setSaleForm(f => ({ ...f, [k]: v }));
 
   return (
     <div style={{ padding: isMobile ? "14px 10px" : "24px 20px", maxWidth: 1200, margin: "0 auto", direction: "rtl" }}>
@@ -204,7 +234,7 @@ export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveE
             <div style={{ height: "100%", width: `${collectRate}%`, background: rateColor, borderRadius: 99, transition: "width .5s" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
-            <span style={{ color: C.green,  fontWeight: 600 }}>وەرگیراو: {fmt(grossRevenue)} د.ع</span>
+            <span style={{ color: C.green,  fontWeight: 600 }}>وەرگیراو: {fmt(orderPaidTotal)} د.ع</span>
             <span style={{ color: outstanding > 0 ? C.red : C.green, fontWeight: 600 }}>ماوە: {fmt(outstanding)} د.ع</span>
           </div>
         </div>
@@ -384,6 +414,92 @@ export default function FinanceTab({ orders, expenses, manualDebts = [], onSaveE
                   </tr>
                 ))}
               </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Daily Sales section ── */}
+      <div style={{ background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: showSaleForm ? `1px solid ${C.border}` : "none" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.text, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>فڕۆشتنی ڕۆژانە (خەرجی ڕۆژانە)</div>
+            {dsInRange.length > 0 && <div style={{ fontSize: 13, color: C.green, fontWeight: 600, marginTop: 2, fontFamily: "'Courier New',monospace" }}>کۆ: {fmt(dailySalesTotal)} د.ع</div>}
+          </div>
+          <button onClick={() => { setShowSaleForm(v => !v); setSaleErr(""); }} style={{
+            padding: "8px 18px", borderRadius: 9, fontSize: 14, fontWeight: 600, cursor: "pointer",
+            border: `1.5px solid ${showSaleForm ? C.muted : C.accent}`,
+            background: showSaleForm ? "transparent" : C.accent,
+            color: showSaleForm ? C.muted : "#fff",
+            fontFamily: "Segoe UI,Tahoma,sans-serif", transition: "all .15s",
+          }}>
+            {showSaleForm ? "هەڵوەشاندن" : "+ زیادکردنی فڕۆشتن"}
+          </button>
+        </div>
+
+        {showSaleForm && (
+          <div style={{ padding: "16px 18px", background: C.strip, borderBottom: `1px solid ${C.border}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>وەسف / کاڵا</div>
+                <input value={saleForm.description} onChange={e => inpSale("description", e.target.value)} placeholder="فڕۆشتنی قوماش، ملوانکە، هتد..."
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "Segoe UI,Tahoma,sans-serif" }}
+                  onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>بڕی پارە</div>
+                <input type="number" value={saleForm.amount} onChange={e => inpSale("amount", e.target.value)} placeholder="10000"
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box", fontFamily: "'Courier New',monospace" }}
+                  onFocus={e => (e.target.style.borderColor = C.accent)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 4, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>بەروار</div>
+                <input type="date" value={saleForm.date} onChange={e => inpSale("date", e.target.value)}
+                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: `1.5px solid ${C.border}`, borderRadius: 8, background: C.card, color: C.text, outline: "none", boxSizing: "border-box" }} />
+              </div>
+            </div>
+            {saleErr && <div style={{ color: C.red, fontSize: 13, marginBottom: 8, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{saleErr}</div>}
+            <button onClick={handleSaveSaleForm} style={{ padding: "9px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", background: C.header, color: C.headerText, border: "none", borderRadius: 9, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+              پاشەکەوتکردن
+            </button>
+          </div>
+        )}
+
+        {dsInRange.length === 0 ? (
+          <div style={{ padding: "30px 18px", textAlign: "center", color: C.muted, fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+            {fromDate || toDate ? "هیچ فڕۆشتنێکی ڕۆژانە لەم ماوەیەدا نەدۆزرایەوە" : "هیچ فڕۆشتنێکی ڕۆژانە تۆمار نەکراوە"}
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif", direction: "rtl" }}>
+              <thead>
+                <tr style={{ background: C.strip }}>
+                  {["وەسف", "بڕی پارە", "بەروار", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "10px 14px", color: C.muted, fontWeight: 600, textAlign: "right", whiteSpace: "nowrap", fontSize: 13 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {dsInRange.sort((a,b)=>(b.date||"").localeCompare(a.date||"")).map((s, i) => (
+                  <tr key={s.id} style={{ background: i % 2 === 0 ? C.card : C.strip, borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: "10px 14px", fontWeight: 600, color: C.text }}>{s.description}</td>
+                    <td style={{ padding: "10px 14px", color: C.green, fontWeight: 700, fontFamily: "'Courier New',monospace", whiteSpace: "nowrap" }}>
+                      {fmt(s.amount)} <span style={{ fontSize: 11 }}>د.ع</span>
+                    </td>
+                    <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap", fontSize: 13 }}>{s.date || "—"}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                      <button onClick={() => onDeleteDailySale(s.id)} style={{ background: "none", border: "none", color: C.red, fontSize: 16, cursor: "pointer", padding: "2px 6px", borderRadius: 6 }}>✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: C.strip, borderTop: `2px solid ${C.border}` }}>
+                  <td style={{ padding: "11px 14px", fontWeight: 700, color: C.text }}>کۆی گشتی فڕۆشتنەکان</td>
+                  <td style={{ padding: "11px 14px", fontWeight: 700, color: C.green, fontFamily: "'Courier New',monospace" }}>{fmt(dailySalesTotal)} د.ع</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

@@ -31,7 +31,7 @@ import scissorsIcon from "./assets/images/scissors.png";
 import logoImg      from "./assets/images/qumashcenterlogo.png";
 import financeIcon  from "./assets/images/financial.png";
 
-async function sendTelegramNotification(order) {
+async function sendTelegramNotification(payload, type = "new") {
   const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
   const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
   if (!token || !chatId) {
@@ -39,17 +39,40 @@ async function sendTelegramNotification(order) {
     return;
   }
 
-  const cur = order.currency === "USD" ? "$" : "د.ع";
-  const total = toNum(order.totalPrice);
+  let message = "";
 
-  const message = [
-    `🔔 <b>داواکاری نوێ تۆمارکرا</b>`,
-    `━━━━━━━━━━━━━━━━━━`,
-    `🔢 <b>کۆدی داواکاری:</b> <code>${order.code}</code>`,
-    `👤 <b>کڕیار:</b> ${order.name}`,
-    `📅 <b>بەروار:</b> ${order.orderDate || "—"}`,
-    `💰 <b>نرخ:</b> ${fmt(total)} ${cur}`
-  ].join("\n");
+  if (type === "daily_sale") {
+    message = [
+      ` <b>فڕۆشتنی ڕۆژانە (خەرجی ڕۆژانە) تۆمارکرا</b>`,
+      `━━━━━━━━━━━━━━━━━━`,
+      ` <b>وەسف / کاڵا:</b> ${payload.description || "—"}`,
+      ` <b>بڕی پارە:</b> ${fmt(toNum(payload.amount))} د.ع`,
+      ` <b>بەروار:</b> ${payload.date || "—"}`
+    ].join("\n");
+  } else {
+    const cur = payload.currency === "USD" ? "$" : "د.ع";
+    const total = toNum(payload.totalPrice);
+    const paid = toNum(payload.paidAmount);
+    const remaining = remAmt(payload.totalPrice, payload.paidAmount);
+
+    let header = ` <b>داواکاری نوێ تۆمارکرا</b>`;
+    if (type === "fully_paid") {
+      header = ` <b>داواکاری بە تەواوی پارەی درا</b>`;
+    } else if (type === "payment") {
+      header = ` <b>پارەدانی نوێ بۆ داواکاری تۆمارکرا</b>`;
+    }
+
+    message = [
+      header,
+      `━━━━━━━━━━━━━━━━━━`,
+      ` <b>کۆدی داواکاری:</b> <code>${payload.code}</code>`,
+      ` <b>کڕیار:</b> ${payload.name}`,
+      ` <b>بەروار:</b> ${payload.orderDate || "—"}`,
+      ` <b>نرخی گشتی:</b> ${fmt(total)} ${cur}`,
+      ` <b>پارەی دراو:</b> ${fmt(paid)} ${cur}`,
+      ` <b>ماوە:</b> ${fmt(remaining)} ${cur}`
+    ].join("\n");
+  }
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -72,6 +95,24 @@ async function sendTelegramNotification(order) {
   }
 }
 
+function checkAndSendPaymentNotification(originalOrder, updatedOrder) {
+  if (!originalOrder) return;
+  const originalPaid = toNum(originalOrder.paidAmount);
+  const originalTotal = toNum(originalOrder.totalPrice);
+  const newPaid = toNum(updatedOrder.paidAmount);
+  const newTotal = toNum(updatedOrder.totalPrice);
+
+  const wasPartiallyPaid = originalPaid > 0 && originalPaid < originalTotal;
+  const isNowFullyPaid = newPaid >= newTotal && originalPaid < originalTotal;
+  const isPartiallyPaidPayAgain = wasPartiallyPaid && newPaid > originalPaid && newPaid < newTotal;
+
+  if (isNowFullyPaid) {
+    sendTelegramNotification(updatedOrder, "fully_paid");
+  } else if (isPartiallyPaidPayAgain) {
+    sendTelegramNotification(updatedOrder, "payment");
+  }
+}
+
 export default function App({ branchId, branchName, onLogout }) {
   const isMobile = useIsMobile();
   const K = k => `qumash_${branchId}_${k}`;
@@ -82,6 +123,7 @@ export default function App({ branchId, branchName, onLogout }) {
   const [bin,          setBin]          = useState(() => ls.load(K("bin"),      []));
   const [expenses,     setExpenses]     = useState(() => ls.load(K("expenses"), []));
   const [manualDebts,  setManualDebts]  = useState(() => ls.load(K("manual_debts"), []));
+  const [dailySales,   setDailySales]   = useState(() => ls.load(K("daily_sales"), []));
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState("orders");
   const [search,       setSearch]       = useState("");
@@ -101,12 +143,14 @@ export default function App({ branchId, branchName, onLogout }) {
       db.loadBin(branchId),
       db.loadExpenses(branchId),
       db.loadManualDebts(branchId),
-    ]).then(([o, p, b, e, md]) => {
+      db.loadDailySales(branchId),
+    ]).then(([o, p, b, e, md, ds]) => {
       if (o !== null) { setOrders(o);   ls.save(K("orders"),   o); }
       if (p !== null) { setProfiles(p); ls.save(K("profiles"), p); }
       if (b !== null) { setBin(b);      ls.save(K("bin"),      b); }
       if (e !== null) { setExpenses(e); ls.save(K("expenses"), e); }
       if (md !== null) { setManualDebts(md); ls.save(K("manual_debts"), md); }
+      if (ds !== null) { setDailySales(ds); ls.save(K("daily_sales"), ds); }
       setLoading(false);
     });
   }, [branchId]);
@@ -162,6 +206,7 @@ export default function App({ branchId, branchName, onLogout }) {
   useEffect(() => { ls.save(K("bin"),      bin);      }, [bin]);
   useEffect(() => { ls.save(K("expenses"), expenses); }, [expenses]);
   useEffect(() => { ls.save(K("manual_debts"), manualDebts); }, [manualDebts]);
+  useEffect(() => { ls.save(K("daily_sales"), dailySales); }, [dailySales]);
 
   function handleSaveManualDebt(debt) {
     setManualDebts(prev => {
@@ -189,6 +234,20 @@ export default function App({ branchId, branchName, onLogout }) {
     db.deleteExpense(id);
   }
 
+  function handleSaveDailySale(sale) {
+    setDailySales(prev => {
+      const exists = prev.find(s => s.id === sale.id);
+      return exists ? prev.map(s => s.id === sale.id ? sale : s) : [sale, ...prev];
+    });
+    db.upsertDailySale(sale, branchId);
+    sendTelegramNotification(sale, "daily_sale");
+  }
+
+  function handleDeleteDailySale(id) {
+    setDailySales(prev => prev.filter(s => s.id !== id));
+    db.deleteDailySale(id);
+  }
+
   function handleAddNewProfile(name) {
     const p = { id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() };
     setProfiles(prev => [p, ...prev]);
@@ -196,7 +255,8 @@ export default function App({ branchId, branchName, onLogout }) {
   }
 
   function handleSaveOrder(order) {
-    const isNew = !orders.some(o => o.id === order.id);
+    const originalOrder = orders.find(o => o.id === order.id);
+    const isNew = !originalOrder;
 
     setOrders(prev => {
       const exists = prev.find(o => o.id === order.id);
@@ -222,9 +282,11 @@ export default function App({ branchId, branchName, onLogout }) {
     });
     setModal(null);
 
-    // Send Telegram notification if it's a new order
+    // Send Telegram notification if it's a new order, or check payment updates if editing
     if (isNew) {
-      sendTelegramNotification(order);
+      sendTelegramNotification(order, "new");
+    } else {
+      checkAndSendPaymentNotification(originalOrder, order);
     }
   }
 
@@ -244,9 +306,11 @@ export default function App({ branchId, branchName, onLogout }) {
   }
 
   function handleAddPayment(updatedOrder) {
+    const originalOrder = orders.find(o => o.id === updatedOrder.id);
     setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
     db.upsertOrder(updatedOrder, branchId);
     setPayModal(null);
+    checkAndSendPaymentNotification(originalOrder, updatedOrder);
   }
 
   function handleDeleteOrder(id) {
@@ -373,9 +437,10 @@ export default function App({ branchId, branchName, onLogout }) {
 
       {tab === "finance" && (
         <FinanceTab
-          orders={orders} expenses={expenses} manualDebts={manualDebts}
+          orders={orders} expenses={expenses} manualDebts={manualDebts} dailySales={dailySales}
           onSaveExpense={handleSaveExpense} onDeleteExpense={handleDeleteExpense}
           onSaveManualDebt={handleSaveManualDebt} onDeleteManualDebt={handleDeleteManualDebt}
+          onSaveDailySale={handleSaveDailySale} onDeleteDailySale={handleDeleteDailySale}
         />
       )}
 

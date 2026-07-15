@@ -214,6 +214,49 @@ export async function deleteExpense(id) {
   if (error) console.error("deleteExpense:", error.message);
 }
 
+// ── daily sales ───────────────────────────────────────────────────────
+
+function dailySaleFromDb(row) {
+  return {
+    id:          row.id,
+    description: row.description ?? "",
+    amount:      row.amount      ?? "0",
+    date:        row.date        ?? "",
+  };
+}
+
+function dailySaleToDb(sale, branchId) {
+  return {
+    id:          sale.id,
+    branch_id:   branchId,
+    description: sale.description,
+    amount:      sale.amount,
+    date:        sale.date,
+  };
+}
+
+export async function loadDailySales(branchId) {
+  const { data, error } = await supabase
+    .from("daily_sales")
+    .select("*")
+    .eq("branch_id", branchId)
+    .order("date", { ascending: false });
+  if (error) { console.error("loadDailySales:", error.message); return null; }
+  return data.map(dailySaleFromDb);
+}
+
+export async function upsertDailySale(sale, branchId) {
+  const { error } = await supabase
+    .from("daily_sales")
+    .upsert(dailySaleToDb(sale, branchId), { onConflict: "id" });
+  if (error) console.error("upsertDailySale:", error.message);
+}
+
+export async function deleteDailySale(id) {
+  const { error } = await supabase.from("daily_sales").delete().eq("id", id);
+  if (error) console.error("deleteDailySale:", error.message);
+}
+
 // ── manual debts ──────────────────────────────────────────────────────
 
 function manualDebtFromDb(row) {
