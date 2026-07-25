@@ -102,13 +102,14 @@ function checkAndSendPaymentNotification(originalOrder, updatedOrder) {
   const newPaid = toNum(updatedOrder.paidAmount);
   const newTotal = toNum(updatedOrder.totalPrice);
 
-  const wasPartiallyPaid = originalPaid > 0 && originalPaid < originalTotal;
-  const isNowFullyPaid = newPaid >= newTotal && originalPaid < originalTotal;
-  const isPartiallyPaidPayAgain = wasPartiallyPaid && newPaid > originalPaid && newPaid < newTotal;
+  if (newPaid <= originalPaid) return;
 
-  if (isNowFullyPaid) {
+  const wasFullyPaid = originalTotal > 0 && originalPaid >= originalTotal;
+  const isNowFullyPaid = newTotal > 0 && newPaid >= newTotal;
+
+  if (isNowFullyPaid && !wasFullyPaid) {
     sendTelegramNotification(updatedOrder, "fully_paid");
-  } else if (isPartiallyPaidPayAgain) {
+  } else {
     sendTelegramNotification(updatedOrder, "payment");
   }
 }

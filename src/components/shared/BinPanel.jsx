@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { C } from "../../constants/theme";
 import { fmt } from "../../utils/format";
 import Btn from "../ui/Btn";
@@ -7,6 +7,32 @@ import checkIcon from "../../assets/images/check.png";
 
 export default function BinPanel({ bin, onRestore, onPermanentDelete, onClearAll, onClose }) {
   const [confirmClear, setConfirmClear] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [deleteCountdown, setDeleteCountdown] = useState(0);
+
+  useEffect(() => {
+    if (!pendingDeleteId || deleteCountdown <= 0) return;
+    const timer = window.setTimeout(() => {
+      setDeleteCountdown(seconds => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [pendingDeleteId, deleteCountdown]);
+
+  function startPermanentDelete(id) {
+    setPendingDeleteId(id);
+    setDeleteCountdown(3);
+  }
+
+  function cancelPermanentDelete() {
+    setPendingDeleteId(null);
+    setDeleteCountdown(0);
+  }
+
+  function confirmPermanentDelete(id) {
+    if (pendingDeleteId !== id || deleteCountdown > 0) return;
+    onPermanentDelete(id);
+    cancelPermanentDelete();
+  }
 
   return (
     <div
@@ -64,7 +90,35 @@ export default function BinPanel({ bin, onRestore, onPermanentDelete, onClearAll
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={() => onRestore(o.id)} color={C.green} solid small>↩ گەڕاندنەوە</Btn>
-                <Btn onClick={() => onPermanentDelete(o.id)} color={C.red} small>سڕینەوەی ئەبەدی</Btn>
+                {pendingDeleteId === o.id ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={deleteCountdown > 0}
+                      onClick={() => confirmPermanentDelete(o.id)}
+                      aria-live="polite"
+                      style={{
+                        background: deleteCountdown > 0 ? "#f0e6e6" : C.red,
+                        color: deleteCountdown > 0 ? C.muted : "#fff",
+                        border: `1.5px solid ${deleteCountdown > 0 ? C.border : C.red}`,
+                        borderRadius: 9,
+                        padding: "6px 14px",
+                        fontSize: 13,
+                        cursor: deleteCountdown > 0 ? "not-allowed" : "pointer",
+                        fontFamily: "Segoe UI,Tahoma,sans-serif",
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {deleteCountdown > 0
+                        ? `چاوەڕوان بە... ${deleteCountdown}`
+                        : "دڵنیام — سڕینەوەی ئەبەدی"}
+                    </button>
+                    <Btn onClick={cancelPermanentDelete} color={C.muted} small>پاشگەزبوونەوە</Btn>
+                  </>
+                ) : (
+                  <Btn onClick={() => startPermanentDelete(o.id)} color={C.red} small>سڕینەوەی ئەبەدی</Btn>
+                )}
               </div>
             </div>
           ))}
