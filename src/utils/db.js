@@ -81,15 +81,24 @@ export async function loadOrders(branchId) {
 }
 
 export async function upsertOrder(order, branchId) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("orders")
-    .upsert(orderToDb(order, branchId), { onConflict: "id" });
-  if (error) console.error("upsertOrder:", error.message);
+    .upsert(orderToDb(order, branchId), { onConflict: "id" })
+    .select();
+  if (error) {
+    console.error("upsertOrder:", error.message);
+    return { data: null, error };
+  }
+  return { data: data ? data.map(orderFromDb)[0] : null, error: null };
 }
 
 export async function deleteOrder(id) {
   const { error } = await supabase.from("orders").delete().eq("id", id);
-  if (error) console.error("deleteOrder:", error.message);
+  if (error) {
+    console.error("deleteOrder:", error.message);
+    return { error };
+  }
+  return { error: null };
 }
 
 // ── profiles ──────────────────────────────────────────────────────────
@@ -105,15 +114,24 @@ export async function loadProfiles(branchId) {
 }
 
 export async function upsertProfile(profile, branchId) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .upsert(profileToDb(profile, branchId), { onConflict: "id" });
-  if (error) console.error("upsertProfile:", error.message);
+    .upsert(profileToDb(profile, branchId), { onConflict: "id" })
+    .select();
+  if (error) {
+    console.error("upsertProfile:", error.message);
+    return { data: null, error };
+  }
+  return { data: data ? data.map(profileFromDb)[0] : null, error: null };
 }
 
 export async function deleteProfile(id) {
   const { error } = await supabase.from("profiles").delete().eq("id", id);
-  if (error) console.error("deleteProfile:", error.message);
+  if (error) {
+    console.error("deleteProfile:", error.message);
+    return { error };
+  }
+  return { error: null };
 }
 
 // ── bin ───────────────────────────────────────────────────────────────

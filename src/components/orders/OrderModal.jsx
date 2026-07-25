@@ -43,6 +43,7 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
   const [photoFile,     setPhotoFile]    = useState(null);
   const [photoPreview,  setPhotoPreview] = useState(order?.fabricPhoto || null);
   const [photoErr,      setPhotoErr]     = useState("");
+  const [saveErr,       setSaveErr]      = useState("");
   const [saving,        setSaving]       = useState(false);
   const mRefs       = useRef([]);
   const firstRef    = useRef(null);
@@ -148,6 +149,7 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
     }
     setSaving(true);
     setPhotoErr("");
+    setSaveErr("");
     let fabricPhoto = form.fabricPhoto || "";
     if (photoFile && branchId) {
       const { url, error } = await uploadFabricPhoto(photoFile, form.id, branchId);
@@ -159,7 +161,12 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
         return;
       }
     }
-    onSave({ ...form, fabricPhoto });
+    const res = await onSave({ ...form, fabricPhoto });
+    if (res && !res.success) {
+      setSaveErr(res.error || "خەتایەک ڕووی دا لە پاشەکەوتکردن");
+      setSaving(false);
+      return;
+    }
     setSaving(false);
   }
 
@@ -509,12 +516,18 @@ export default function OrderModal({ order, allOrders, profiles, branchId, onClo
           <p style={{ fontSize: 12, color: C.muted, marginTop: 10, marginBottom: 0, textAlign: "center" }}>Enter بپەرە بۆ قەبارەی دواتر</p>
         </div>
 
+        {saveErr && (
+          <div style={{ background: "#fdeded", color: "#c0392b", border: "1px solid #e74c3c", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+            ⚠️ {saveErr}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: saving ? 0.7 : 1 }}>
+          <Btn onClick={handleSave} color={C.header} solid disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: saving ? 0.7 : 1 }}>
             <span>{saving ? "چاوەڕوان بە..." : "پاشەکەوتکردن"}</span>
             {!saving && <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />}
           </Btn>
-          <Btn onClick={onClose} color={C.muted}>هەڵوەشاندن</Btn>
+          <Btn onClick={onClose} color={C.muted} disabled={saving}>هەڵوەشاندن</Btn>
         </div>
       </div>
     </div>

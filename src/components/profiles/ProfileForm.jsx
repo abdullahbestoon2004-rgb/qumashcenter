@@ -19,6 +19,8 @@ export default function ProfileForm({ profile, onClose, onSave }) {
     : { id: uuid(), name: "", phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() }
   );
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState("");
   const mRefs    = useRef([]);
   const firstRef = useRef(null);
   useEffect(() => { firstRef.current?.focus(); }, []);
@@ -26,13 +28,22 @@ export default function ProfileForm({ profile, onClose, onSave }) {
   const sf = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const sm = (k, v) => setForm(f => ({ ...f, measurements: { ...f.measurements, [k]: v } }));
 
-  function handleSave() {
+  async function handleSave() {
     const e = {};
     if (!form.name.trim())            e.name  = "ناو داواکراوە";
     if (!normPhone(form.phone))       e.phone = "ژمارەی مۆبایل داواکراوە";
     else if (!validPhone(form.phone)) e.phone = "ژمارە دروست نییە — 07XXXXXXXXX";
     if (Object.keys(e).length) { setErrors(e); return; }
-    onSave({ ...form, phone: normPhone(form.phone) });
+
+    setSaving(true);
+    setSaveErr("");
+    const res = await onSave({ ...form, phone: normPhone(form.phone) });
+    if (res && !res.success) {
+      setSaveErr(res.error || "خەتایەک ڕووی دا لە پاشەکەوتکردن");
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
   }
 
   function handleMKD(e, idx) {
@@ -45,13 +56,13 @@ export default function ProfileForm({ profile, onClose, onSave }) {
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(30,18,8,.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 150, padding: 16 }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget && !saving) onClose(); }}
     >
       <div style={{ background: C.card, borderRadius: 16, width: "100%", maxWidth: 620, border: `2px solid ${C.border}`, padding: isMobile ? "16px 14px 14px" : "28px 28px 24px", direction: "rtl", boxShadow: "0 16px 48px rgba(0,0,0,.22)", maxHeight: "92vh", overflowY: "auto" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, color: C.text, fontSize: 21, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>{isEdit ? "دەستکاری پرۆفایل" : "پرۆفایلی نوێ"}</h2>
-          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
+          <button onClick={onClose} disabled={saving} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.muted }}>✕</button>
         </div>
 
         <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
@@ -99,12 +110,18 @@ export default function ProfileForm({ profile, onClose, onSave }) {
           <p style={{ fontSize: 12, color: C.muted, marginTop: 10, marginBottom: 0, textAlign: "center" }}>Enter بپەرە بۆ قەبارەی دواتر</p>
         </div>
 
+        {saveErr && (
+          <div style={{ background: "#fdeded", color: "#c0392b", border: "1px solid #e74c3c", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 14, fontFamily: "Segoe UI,Tahoma,sans-serif" }}>
+            ⚠️ {saveErr}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={handleSave} color={C.header} solid style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span>پاشەکەوتکردن</span>
-            <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />
+          <Btn onClick={handleSave} color={C.header} solid disabled={saving} style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: saving ? 0.7 : 1 }}>
+            <span>{saving ? "چاوەڕوان بە..." : "پاشەکەوتکردن"}</span>
+            {!saving && <img src={checkIcon} alt="check" style={{ width: 14, height: 14, objectFit: "contain" }} />}
           </Btn>
-          <Btn onClick={onClose} color={C.muted}>هەڵوەشاندن</Btn>
+          <Btn onClick={onClose} color={C.muted} disabled={saving}>هەڵوەشاندن</Btn>
         </div>
       </div>
     </div>

@@ -249,55 +249,112 @@ export default function App({ branchId, branchName, onLogout }) {
     db.deleteDailySale(id);
   }
 
-  function handleAddNewProfile(name) {
+  async function handleAddNewProfile(name) {
     const p = { id: uuid(), name, phone: "", notes: "", measurements: { ...EMPTY_M }, createdAt: todayISO() };
-    setProfiles(prev => [p, ...prev]);
-    db.upsertProfile(p, branchId);
+    const res = await db.upsertProfile(p, branchId);
+    if (!res.error) {
+      setProfiles(prev => [p, ...prev]);
+    }
   }
 
-  function handleSaveOrder(order) {
+  async function handleSaveOrder(order) {
     const originalOrder = orders.find(o => o.id === order.id);
     const isNew = !originalOrder;
+    const ph = normPhone(order.phone);
+    const nm = order.name.trim().toLowerCase();
+
+    let profileToSave = null;
+
+    if (!isNew) {
+      const origPh = normPhone(originalOrder.phone);
+      const origNm = (originalOrder.name || "").trim().toLowerCase();
+
+      let existing = profiles.find(p => normPhone(p.phone) === origPh && p.name.trim().toLowerCase() === origNm)
+        || profiles.find(p => normPhone(p.phone) === origPh)
+        || profiles.find(p => p.name.trim().toLowerCase() === origNm);
+
+      if (!existing && (ph || nm)) {
+        existing = profiles.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm)
+          || (ph ? profiles.find(p => normPhone(p.phone) === ph) : null)
+          || profiles.find(p => p.name.trim().toLowerCase() === nm);
+      }
+
+      if (existing) {
+        profileToSave = {
+          ...existing,
+          name: order.name,
+          phone: ph,
+          measurements: { ...order.measurements }
+        };
+      }
+    } else {
+      const existing = profiles.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm)
+        || (ph ? profiles.find(p => normPhone(p.phone) === ph) : null)
+        || profiles.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === nm);
+
+      if (existing) {
+        profileToSave = {
+          ...existing,
+          name: order.name,
+          phone: ph,
+          measurements: { ...order.measurements }
+        };
+      }
+    }
+
+    if (!profileToSave) {
+      profileToSave = {
+        id: uuid(),
+        name: order.name,
+        phone: ph,
+        measurements: { ...order.measurements },
+        notes: "",
+        createdAt: todayISO()
+      };
+    }
+
+    const orderRes = await db.upsertOrder(order, branchId);
+    if (orderRes.error) {
+      return { success: false, error: orderRes.error.message || "خەتایەک ڕووی دا لە پاشەکەوتکردنی داواکاری" };
+    }
+
+    const profileRes = await db.upsertProfile(profileToSave, branchId);
+    if (profileRes.error) {
+      return { success: false, error: profileRes.error.message || "خەتایەک ڕووی دا لە پاشەکەوتکردنی پرۆفایلی کڕیار" };
+    }
 
     setOrders(prev => {
       const exists = prev.find(o => o.id === order.id);
       return exists ? prev.map(o => o.id === order.id ? order : o) : [order, ...prev];
     });
-    db.upsertOrder(order, branchId);
 
     setProfiles(prev => {
-      const ph = normPhone(order.phone);
-      const nm = order.name.trim().toLowerCase();
-      // Match an existing profile only when BOTH phone and name agree — two different
-      // clients can share a phone number, so phone alone must never rename another client.
-      const existing = prev.find(p => normPhone(p.phone) === ph && p.name.trim().toLowerCase() === nm)
-        || prev.find(p => !normPhone(p.phone) && p.name.trim().toLowerCase() === nm);
-      if (existing) {
-        const updated = { ...existing, name: order.name, phone: ph, measurements: { ...order.measurements } };
-        db.upsertProfile(updated, branchId);
-        return prev.map(p => p.id === existing.id ? updated : p);
-      }
-      const newP = { id: uuid(), name: order.name, phone: ph, measurements: { ...order.measurements }, notes: "", createdAt: todayISO() };
-      db.upsertProfile(newP, branchId);
-      return [newP, ...prev];
+      const exists = prev.find(p => p.id === profileToSave.id);
+      return exists ? prev.map(p => p.id === profileToSave.id ? profileToSave : p) : [profileToSave, ...prev];
     });
+
     setModal(null);
 
-    // Send Telegram notification if it's a new order, or check payment updates if editing
     if (isNew) {
       sendTelegramNotification(order, "new");
     } else {
       checkAndSendPaymentNotification(originalOrder, order);
     }
+
+    return { success: true };
   }
 
-  function handleSaveProfile(profile) {
+  async function handleSaveProfile(profile) {
+    const res = await db.upsertProfile(profile, branchId);
+    if (res.error) {
+      return { success: false, error: res.error.message || "خەتایەک ڕووی دا لە پاشەکەوتکردنی پرۆفایل" };
+    }
     setProfiles(prev => {
       const exists = prev.find(p => p.id === profile.id);
       return exists ? prev.map(p => p.id === profile.id ? profile : p) : [profile, ...prev];
     });
-    db.upsertProfile(profile, branchId);
     setProfileModal(null);
+    return { success: true };
   }
 
   function handleDeleteProfile(id) {
