@@ -4,6 +4,7 @@ on:
   schedule:
     # Runs every 3 days at 00:00 UTC
     - cron: '0 0 */3 * *'
+
   workflow_dispatch:
     # Allows running manually anytime from GitHub Actions tab
 
@@ -20,13 +21,11 @@ jobs:
           URL="${SUPABASE_URL:-https://ssabpqwddoifaxdxkwzn.supabase.co}"
           KEY="${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzYWJwcXdkZG9pZmF4ZHhrd3puIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDA2NzYsImV4cCI6MjA5ODExNjY3Nn0.Q1tSy2KXSKxDQsj_D8pe_ewh6Lrqr0dLJNe-dk3dlkQ}"
           echo "Pinging Supabase database at $URL..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "$URL/rest/v1/" \
-            -H "apikey: $KEY" \
-            -H "Authorization: Bearer $KEY")
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "$URL/auth/v1/health")
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
           echo "HTTP Status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 500 ]; then
             echo "Successfully pinged Supabase! Database is active and inactivity timer has been reset."
           else
             echo "Error: Received HTTP $HTTP_STATUS ($BODY)"
